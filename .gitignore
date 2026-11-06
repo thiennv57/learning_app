@@ -21,6 +21,6 @@ Thumbs.db
 .demo_questions.txt
 *.log
 
-# Dữ liệu sinh ra lúc chạy (bộ câu hỏi người dùng tự tạo)
-# Bỏ dấu # ở dòng dưới nếu không muốn đẩy bộ câu hỏi mẫu lên GitHub
-# data/question_sets.json
+# Bộ câu hỏi giáo viên tạo qua giao diện — là DỮ LIỆU, không phải code.
+# Không theo dõi để mỗi lần git pull không ghi đè dữ liệu trên server.
+data/question_sets.json
