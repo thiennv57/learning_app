@@ -1,0 +1,769 @@
+{% extends "base.html" %}
+{% block title %}🔫 Bắn Súng Gunny - {{ topic.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+*{box-sizing:border-box}
+.gunny-game{max-width:960px;margin:0 auto;padding:10px;user-select:none}
+
+/* ============ HP BARS ============ */
+.hp-panel{display:flex;gap:0;border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.hp-side{flex:1;padding:10px 16px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:0.9em}
+.hp-left{background:linear-gradient(135deg,#1a6b2e,#2e8b3a);color:#fff}
+.hp-right{background:linear-gradient(135deg,#8b2e2e,#c0392b);color:#fff}
+.hp-name{min-width:70px;font-size:0.85em}
+.hp-bar-wrap{flex:1;height:20px;background:rgba(0,0,0,0.3);border-radius:10px;overflow:hidden;position:relative}
+.hp-bar{height:100%;border-radius:10px;transition:width 0.5s ease;position:relative}
+.hp-bar.green{background:linear-gradient(90deg,#27ae60,#2ecc71)}
+.hp-bar.yellow{background:linear-gradient(90deg,#f39c12,#f1c40f)}
+.hp-bar.red{background:linear-gradient(90deg,#c0392b,#e74c3c)}
+.hp-text{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:0.7em;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5)}
+.hp-score{font-size:1.2em;font-weight:900;min-width:35px;text-align:center}
+
+/* ============ SCENE ============ */
+.gn-scene{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.5);margin-bottom:14px;background:#87CEEB}
+.gn-sky{position:absolute;inset:0;background:linear-gradient(180deg,#4a90d9 0%,#87CEEB 40%,#b0d4f1 70%,#d4e8b0 100%);z-index:0}
+/* Clouds */
+.gn-cloud{position:absolute;z-index:1;opacity:0.7;filter:blur(1px)}
+.gn-cloud::before,.gn-cloud::after{content:'';position:absolute;background:#fff;border-radius:50%}
+.gn-cloud.c1{top:8%;left:15%;width:80px;height:30px;background:#fff;border-radius:20px;animation:cloudMove 25s linear infinite}
+.gn-cloud.c2{top:15%;left:55%;width:60px;height:22px;background:#fff;border-radius:15px;animation:cloudMove 30s linear infinite reverse}
+.gn-cloud.c3{top:5%;left:80%;width:70px;height:26px;background:#fff;border-radius:18px;animation:cloudMove 22s linear infinite}
+@keyframes cloudMove{0%{transform:translateX(0)}50%{transform:translateX(40px)}100%{transform:translateX(0)}}
+
+/* Ground */
+.gn-ground{position:absolute;bottom:0;left:0;width:100%;height:35%;z-index:2}
+.gn-grass{position:absolute;bottom:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,#5cb85c 0%,#4a9e4a 30%,#3d8b3d 60%,#6b4423 80%,#5a3a1a 100%)}
+
+/* Hills */
+.gn-hill-left{position:absolute;bottom:22%;left:2%;width:22%;height:16%;background:linear-gradient(180deg,#4a9e4a,#3d8b3d);border-radius:50% 50% 0 0;z-index:3}
+.gn-hill-right{position:absolute;bottom:22%;right:2%;width:22%;height:16%;background:linear-gradient(180deg,#4a9e4a,#3d8b3d);border-radius:50% 50% 0 0;z-index:3}
+
+/* Player character (left) */
+.gn-player{position:absolute;bottom:32%;left:8%;z-index:5;text-align:center;transition:transform 0.3s}
+.gn-player-body{width:80px;height:80px;position:relative}
+/* Cannon */
+.gn-cannon{position:absolute;top:30%;right:-20px;width:40px;height:12px;background:linear-gradient(180deg,#555,#333);border-radius:0 6px 6px 0;transform-origin:left center;transform:rotate(-30deg);z-index:6;transition:transform 0.3s}
+.gn-cannon::after{content:'';position:absolute;right:-4px;top:-2px;width:8px;height:16px;background:#444;border-radius:0 4px 4px 0}
+.gn-player-shadow{width:65px;height:10px;background:radial-gradient(ellipse,rgba(0,0,0,0.3),transparent);border-radius:50%;margin:-2px auto 0}
+
+/* Enemy character (right) */
+.gn-enemy{position:absolute;bottom:32%;right:8%;z-index:5;text-align:center;transition:transform 0.3s}
+.gn-enemy-body{width:80px;height:80px;position:relative}
+.gn-enemy-cannon{position:absolute;top:30%;left:-20px;width:40px;height:12px;background:linear-gradient(180deg,#8b2500,#5a1a00);border-radius:6px 0 0 6px;transform-origin:right center;transform:rotate(30deg);z-index:6}
+.gn-enemy-cannon::before{content:'';position:absolute;left:-4px;top:-2px;width:8px;height:16px;background:#6b1a00;border-radius:4px 0 0 4px}
+.gn-enemy-shadow{width:65px;height:10px;background:radial-gradient(ellipse,rgba(0,0,0,0.3),transparent);border-radius:50%;margin:-2px auto 0}
+
+/* ============ MINECRAFT PIXEL CHARACTERS ============ */
+.mc-char{width:100%;height:100%;position:relative;image-rendering:pixelated;filter:drop-shadow(2px 3px 4px rgba(0,0,0,0.5))}
+/* --- Steve --- */
+.mc-steve .mc-head{position:absolute;top:0;left:50%;transform:translateX(-50%);width:32px;height:32px;background:#c69c6d;border:2px solid #6b4423;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.15)}
+.mc-steve .mc-hair{position:absolute;top:0;left:0;width:100%;height:14px;background:#3b2213;border-radius:0}
+.mc-steve .mc-eyes{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.mc-steve .mc-eye{width:6px;height:5px;background:#fff}
+.mc-steve .mc-eye::after{content:'';position:absolute;width:3px;height:5px;background:#4a3728;right:0;top:0}
+.mc-steve .mc-mouth{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:10px;height:3px;background:#8b6045}
+.mc-steve .mc-body{position:absolute;top:32px;left:50%;transform:translateX(-50%);width:28px;height:24px;background:#00a8a8;border:2px solid #007878}
+.mc-steve .mc-arm-l,.mc-steve .mc-arm-r{position:absolute;top:32px;width:10px;height:24px;background:#00a8a8;border:2px solid #007878}
+.mc-steve .mc-arm-l{left:50%;margin-left:-24px}
+.mc-steve .mc-arm-r{left:50%;margin-left:14px}
+.mc-steve .mc-arm-skin{position:absolute;bottom:0;left:1px;right:1px;height:6px;background:#c69c6d}
+.mc-steve .mc-leg-l,.mc-steve .mc-leg-r{position:absolute;top:56px;width:12px;height:20px;background:#3b4cc0;border:2px solid #2a3590}
+.mc-steve .mc-leg-l{left:50%;margin-left:-13px}
+.mc-steve .mc-leg-r{left:50%;margin-left:1px}
+.mc-steve .mc-shoe-l,.mc-steve .mc-shoe-r{position:absolute;bottom:0;left:0;right:0;height:5px;background:#555}
+/* --- Zombie --- */
+.mc-zombie .mc-head{position:absolute;top:0;left:50%;transform:translateX(-50%);width:32px;height:32px;background:#5a8a4a;border:2px solid #3a6030;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.15)}
+.mc-zombie .mc-hair{position:absolute;top:0;left:0;width:100%;height:14px;background:#3a5a2a}
+.mc-zombie .mc-eyes{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.mc-zombie .mc-eye{width:6px;height:6px;background:#000}
+.mc-zombie .mc-mouth{position:absolute;top:23px;left:50%;transform:translateX(-50%);width:12px;height:4px;background:#3a5a2a}
+.mc-zombie .mc-body{position:absolute;top:32px;left:50%;transform:translateX(-50%);width:28px;height:24px;background:#00a8a8;border:2px solid #007878}
+.mc-zombie .mc-arm-l,.mc-zombie .mc-arm-r{position:absolute;top:32px;width:10px;height:28px;background:#5a8a4a;border:2px solid #3a6030}
+.mc-zombie .mc-arm-l{left:50%;margin-left:-24px;transform:rotate(-70deg);transform-origin:top center}
+.mc-zombie .mc-arm-r{left:50%;margin-left:14px;transform:rotate(70deg);transform-origin:top center}
+.mc-zombie .mc-leg-l,.mc-zombie .mc-leg-r{position:absolute;top:56px;width:12px;height:20px;background:#3b4cc0;border:2px solid #2a3590}
+.mc-zombie .mc-leg-l{left:50%;margin-left:-13px}
+.mc-zombie .mc-leg-r{left:50%;margin-left:1px}
+.mc-zombie .mc-shoe-l,.mc-zombie .mc-shoe-r{position:absolute;bottom:0;left:0;right:0;height:5px;background:#555}
+
+/* Projectile */
+.gn-bullet{position:absolute;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff6b35,#cc4400,#8b2500);box-shadow:0 0 8px rgba(255,100,0,0.6),0 2px 4px rgba(0,0,0,0.4);z-index:10;display:none;transform:translate(-50%,-50%)}
+.gn-bullet.active{display:block}
+.gn-bullet.enemy-bullet{background:radial-gradient(circle at 35% 35%,#e74c3c,#c0392b,#7b241c);box-shadow:0 0 8px rgba(231,76,60,0.6),0 2px 4px rgba(0,0,0,0.4)}
+
+/* Explosion */
+.gn-explosion{position:absolute;width:80px;height:80px;z-index:15;pointer-events:none;display:none;transform:translate(-50%,-50%)}
+.gn-explosion.show{display:block;animation:explode 0.6s ease-out forwards}
+@keyframes explode{
+    0%{transform:translate(-50%,-50%) scale(0);opacity:1}
+    30%{transform:translate(-50%,-50%) scale(1.2);opacity:1}
+    100%{transform:translate(-50%,-50%) scale(1.8);opacity:0}
+}
+
+/* Hit flash on characters */
+.gn-player.hit{animation:hitFlash 0.4s ease}
+.gn-enemy.hit{animation:hitFlash 0.4s ease}
+@keyframes hitFlash{0%,100%{filter:none}25%{filter:brightness(3)}50%{filter:brightness(0.5)}75%{filter:brightness(2)}}
+
+/* Damage number popup */
+.dmg-popup{position:absolute;z-index:20;font-weight:900;font-size:1.5em;color:#e74c3c;text-shadow:0 2px 4px rgba(0,0,0,0.5);pointer-events:none;animation:dmgFloat 1s ease-out forwards}
+@keyframes dmgFloat{0%{transform:translateY(0) scale(0.5);opacity:0}20%{transform:translateY(-10px) scale(1.2);opacity:1}100%{transform:translateY(-40px) scale(0.8);opacity:0}}
+
+/* Power bar */
+.gn-power-wrap{position:absolute;bottom:8%;left:50%;transform:translateX(-50%);z-index:16;display:none;text-align:center}
+.gn-power-wrap.active{display:block}
+.gn-power-label{color:#fff;font-weight:800;font-size:0.85em;text-shadow:0 1px 3px rgba(0,0,0,0.6);margin-bottom:4px}
+.gn-power-bar{width:200px;height:16px;background:rgba(0,0,0,0.4);border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,0.4)}
+.gn-power-fill{height:100%;background:linear-gradient(90deg,#2ecc71,#f1c40f,#e74c3c);border-radius:6px;transition:none;width:0%}
+
+/* Angle indicator */
+.gn-angle-line{position:absolute;z-index:8;pointer-events:none;display:none}
+.gn-angle-line.active{display:block}
+
+/* Scene overlay texts */
+.gn-text{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:20;pointer-events:none;opacity:0;font-family:Impact,'Arial Black',sans-serif;font-weight:900;letter-spacing:3px;text-transform:uppercase}
+.gn-text.hit-text{font-size:clamp(2em,7vw,4em);color:#FF6B35;text-shadow:0 2px 0 #CC4400,0 4px 0 #8B2500,0 6px 20px rgba(0,0,0,0.5)}
+.gn-text.miss-text{font-size:clamp(1.8em,6vw,3.5em);color:#95a5a6;text-shadow:0 2px 0 #7f8c8d,0 4px 20px rgba(0,0,0,0.3)}
+.gn-text.ko-text{font-size:clamp(2.5em,8vw,5em);color:#FFD700;text-shadow:0 2px 0 #CC8400,0 4px 0 #AA7000,0 6px 20px rgba(0,0,0,0.5)}
+.gn-text.show{animation:textPop 1.2s ease forwards}
+@keyframes textPop{0%{transform:translate(-50%,-50%) scale(0) rotate(-8deg);opacity:0}15%{transform:translate(-50%,-50%) scale(1.3) rotate(3deg);opacity:1}35%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}75%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(.6);opacity:0}}
+
+/* Instruction */
+.gn-instruct{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);z-index:16;background:rgba(0,0,0,0.75);color:#FFD700;font-weight:800;font-size:clamp(0.75em,2.2vw,1em);padding:8px 20px;border-radius:20px;white-space:nowrap;pointer-events:none;display:none;animation:instructPulse 1s ease infinite;backdrop-filter:blur(4px)}
+.gn-instruct.active{display:block}
+@keyframes instructPulse{0%,100%{opacity:1}50%{opacity:.65}}
+
+/* Wind indicator */
+.gn-wind{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:12;background:rgba(0,0,0,0.5);color:#fff;padding:4px 14px;border-radius:12px;font-size:0.75em;font-weight:700;backdrop-filter:blur(3px)}
+
+/* ============ OBSTACLES ============ */
+.gn-obstacles{position:absolute;inset:0;z-index:4;pointer-events:none}
+.gn-obs{position:absolute;z-index:4}
+.gn-obs.wall{background:linear-gradient(180deg,#8B6914,#6B4423,#5a3a1a);border:2px solid #4a2a10;border-radius:3px;box-shadow:inset 0 0 8px rgba(0,0,0,0.3),2px 3px 6px rgba(0,0,0,0.4)}
+.gn-obs.wall::before{content:'';position:absolute;inset:2px;background:repeating-linear-gradient(0deg,transparent,transparent 8px,rgba(0,0,0,0.15) 8px,rgba(0,0,0,0.15) 9px),repeating-linear-gradient(90deg,transparent,transparent 14px,rgba(0,0,0,0.1) 14px,rgba(0,0,0,0.1) 15px)}
+.gn-obs.rock{background:radial-gradient(ellipse at 35% 35%,#a0a0a0,#808080,#606060);border-radius:40% 50% 45% 55%;box-shadow:inset -3px -3px 6px rgba(0,0,0,0.3),2px 3px 6px rgba(0,0,0,0.4)}
+.gn-obs.hill{background:linear-gradient(180deg,#4a9e4a,#3d8b3d,#2d6b2d);border-radius:50% 50% 5% 5%;box-shadow:2px 3px 8px rgba(0,0,0,0.3)}
+.gn-obs.tower{background:linear-gradient(90deg,#7a6652,#8B7355,#7a6652);border:2px solid #5a4a3a;border-radius:3px 3px 0 0;box-shadow:inset 0 0 10px rgba(0,0,0,0.2),2px 3px 6px rgba(0,0,0,0.4)}
+.gn-obs.tower::before{content:'';position:absolute;top:-8px;left:-3px;right:-3px;height:10px;background:repeating-linear-gradient(90deg,#5a4a3a 0px,#5a4a3a 6px,transparent 6px,transparent 10px)}
+.gn-obs.crate{background:linear-gradient(135deg,#c49a6c,#a0784c);border:2px solid #7a5a3a;border-radius:2px;box-shadow:inset 0 0 6px rgba(0,0,0,0.2),2px 3px 5px rgba(0,0,0,0.3)}
+.gn-obs.crate::before{content:'';position:absolute;inset:3px;border:1px solid rgba(0,0,0,0.2)}
+.gn-obs.crate::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.2)}
+.gn-obs.tree{overflow:visible}
+.gn-obs.tree .tree-trunk{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:22%;height:45%;background:linear-gradient(90deg,#6b4423,#8B6914,#6b4423);border-radius:2px}
+.gn-obs.tree .tree-top{position:absolute;bottom:35%;left:50%;transform:translateX(-50%);width:110%;height:72%;background:radial-gradient(ellipse at 50% 60%,#2ecc71,#27ae60,#1a8a4a);border-radius:50% 50% 20% 20%;box-shadow:0 3px 8px rgba(0,0,0,0.3)}
+.obs-hit{animation:obsHit 0.4s ease}
+@keyframes obsHit{0%,100%{filter:none;transform:none}25%{filter:brightness(2)}50%{transform:scale(0.95);filter:brightness(0.7)}75%{filter:brightness(1.5)}}
+
+/* Angle display */
+.gn-angle-display{position:absolute;bottom:14%;left:6%;z-index:16;color:#FFD700;font-weight:900;font-size:clamp(0.85em,2.5vw,1.3em);text-shadow:0 2px 4px rgba(0,0,0,0.8);display:none;pointer-events:none}
+.gn-angle-display.active{display:block}
+
+/* ============ QUESTION AREA ============ */
+.question-area{background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow);margin-bottom:20px;position:relative;overflow:hidden}
+.question-area::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,#e74c3c,#f39c12,#2ecc71)}
+.qa-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.qa-round{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;font-weight:800;font-size:0.85em;padding:6px 14px;border-radius:20px;white-space:nowrap}
+.qa-timer{margin-left:auto;font-weight:700;font-size:1.3em;color:var(--danger);min-width:50px;text-align:center}
+.qa-timer.warning{animation:timerPulse .5s ease infinite alternate}
+@keyframes timerPulse{from{transform:scale(1)}to{transform:scale(1.15);color:#c0392b}}
+.qa-question{font-size:1.3em;font-weight:700;text-align:center;margin-bottom:20px;line-height:1.5}
+.qa-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qa-choice{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#f8f9fa;border:3px solid #e9ecef;border-radius:12px;cursor:pointer;font-weight:600;font-size:1.05em;transition:all 0.2s}
+.qa-choice:hover{border-color:var(--primary);background:#eef0ff;transform:translateY(-2px);box-shadow:0 4px 12px rgba(108,99,255,0.15)}
+.qa-choice:active{transform:scale(.97)}
+.qa-choice .letter{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;background:var(--primary);color:#fff;border-radius:50%;font-weight:800;font-size:0.9em;flex-shrink:0}
+.qa-choice.correct-flash{border-color:var(--success);background:#eafff0;animation:correctPulse .5s ease}
+.qa-choice.wrong-flash{border-color:var(--danger);background:#fff0f0;animation:wrongShake .5s ease}
+@keyframes correctPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+/* ============ FINAL OVERLAY ============ */
+.final-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center}
+.final-overlay.show{display:flex}
+.final-card{background:#fff;border-radius:20px;padding:36px;text-align:center;max-width:500px;width:92%;animation:modalPop .5s ease;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+@keyframes modalPop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1}}
+.final-trophy{font-size:5em;margin-bottom:8px}
+.final-hp{display:flex;align-items:center;justify-content:center;gap:16px;margin:16px 0}
+.final-hp-side{text-align:center}
+.final-hp-label{font-size:0.85em;color:#666;margin-bottom:4px}
+.final-hp-val{font-size:2em;font-weight:900}
+.final-hp-val.win{color:#2ecc71}
+.final-hp-val.lose{color:#e74c3c}
+.final-message{font-size:1.25em;font-weight:700;margin-bottom:16px;color:var(--text)}
+.final-stars{font-size:2em;margin-bottom:18px}
+.final-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.final-actions .btn{padding:12px 24px;border-radius:12px;font-weight:700;font-size:1em;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s}
+.final-actions .btn:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,0,0,0.2)}
+.final-actions .btn-play{background:var(--success);color:#fff}
+.final-actions .btn-back{background:#f0f0f0;color:var(--text)}
+
+@media(max-width:600px){
+.gn-scene{aspect-ratio:4/3}
+.qa-choices{grid-template-columns:1fr}
+.gn-player-body,.gn-enemy-body{width:60px;height:60px}
+.mc-steve .mc-head,.mc-zombie .mc-head{width:24px;height:24px}
+.mc-steve .mc-hair,.mc-zombie .mc-hair{height:10px}
+.mc-steve .mc-eyes,.mc-zombie .mc-eyes{top:10px;gap:5px}
+.mc-steve .mc-eye,.mc-zombie .mc-eye{width:4px;height:4px}
+.mc-steve .mc-eye::after{width:2px;height:4px}
+.mc-steve .mc-mouth,.mc-zombie .mc-mouth{top:16px;width:7px;height:2px}
+.mc-steve .mc-body,.mc-zombie .mc-body{top:24px;width:20px;height:18px}
+.mc-steve .mc-arm-l,.mc-steve .mc-arm-r,.mc-zombie .mc-arm-l,.mc-zombie .mc-arm-r{top:24px;width:8px;height:18px}
+.mc-steve .mc-arm-l,.mc-zombie .mc-arm-l{margin-left:-18px}
+.mc-steve .mc-arm-r,.mc-zombie .mc-arm-r{margin-left:10px}
+.mc-steve .mc-arm-skin{height:4px}
+.mc-steve .mc-leg-l,.mc-steve .mc-leg-r,.mc-zombie .mc-leg-l,.mc-zombie .mc-leg-r{top:42px;width:9px;height:16px}
+.mc-steve .mc-leg-l,.mc-zombie .mc-leg-l{margin-left:-10px}
+.mc-steve .mc-leg-r,.mc-zombie .mc-leg-r{margin-left:1px}
+.mc-steve .mc-shoe-l,.mc-steve .mc-shoe-r,.mc-zombie .mc-shoe-l,.mc-zombie .mc-shoe-r{height:4px}
+.gn-cannon{width:30px;height:9px;right:-15px}
+.gn-enemy-cannon{width:30px;height:9px;left:-15px}
+.gn-power-bar{width:150px}
+.final-card{padding:20px}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+<a href="{{ url_for('index') }}">🏠 Trang chủ</a><span>›</span>
+<a href="{{ url_for('subject', subject_id=subject_id) }}">{{ subject.icon }} {{ subject.name }}</a><span>›</span>
+<span>🔫 Bắn Súng - {{ topic.name }}</span>
+</div>
+
+<div class="gunny-game" id="gameArea">
+
+<div class="hp-panel">
+<div class="hp-side hp-left">
+<span class="hp-name">⛏️ STEVE</span>
+<div class="hp-bar-wrap"><div class="hp-bar green" id="hpBarPlayer" style="width:100%"><span class="hp-text" id="hpTextPlayer">100</span></div></div>
+<span class="hp-score" id="hpValPlayer">100</span>
+</div>
+<div class="hp-side hp-right">
+<span class="hp-name">🧟 ZOMBIE</span>
+<div class="hp-bar-wrap"><div class="hp-bar green" id="hpBarEnemy" style="width:100%"><span class="hp-text" id="hpTextEnemy">100</span></div></div>
+<span class="hp-score" id="hpValEnemy">100</span>
+</div>
+</div>
+
+<div class="gn-scene" id="gnScene">
+<div class="gn-sky"></div>
+<div class="gn-cloud c1"></div>
+<div class="gn-cloud c2"></div>
+<div class="gn-cloud c3"></div>
+<div class="gn-wind" id="gnWind">💨 Gió: → 2</div>
+<div class="gn-ground"><div class="gn-grass"></div></div>
+<div class="gn-hill-left"></div>
+<div class="gn-hill-right"></div>
+
+<div class="gn-obstacles" id="gnObstacles"></div>
+
+<div class="gn-player" id="gnPlayer">
+<div class="gn-player-body">
+<div class="mc-char mc-steve">
+<div class="mc-head"><div class="mc-hair"></div><div class="mc-eyes"><div class="mc-eye"></div><div class="mc-eye"></div></div><div class="mc-mouth"></div></div>
+<div class="mc-body"></div>
+<div class="mc-arm-l"><div class="mc-arm-skin"></div></div><div class="mc-arm-r"><div class="mc-arm-skin"></div></div>
+<div class="mc-leg-l"><div class="mc-shoe-l"></div></div><div class="mc-leg-r"><div class="mc-shoe-r"></div></div>
+</div>
+<div class="gn-cannon" id="gnCannon"></div>
+</div>
+<div class="gn-player-shadow"></div>
+</div>
+
+<div class="gn-enemy" id="gnEnemy">
+<div class="gn-enemy-body">
+<div class="mc-char mc-zombie">
+<div class="mc-head"><div class="mc-hair"></div><div class="mc-eyes"><div class="mc-eye"></div><div class="mc-eye"></div></div><div class="mc-mouth"></div></div>
+<div class="mc-body"></div>
+<div class="mc-arm-l"></div><div class="mc-arm-r"></div>
+<div class="mc-leg-l"><div class="mc-shoe-l"></div></div><div class="mc-leg-r"><div class="mc-shoe-r"></div></div>
+</div>
+<div class="gn-enemy-cannon"></div>
+</div>
+<div class="gn-enemy-shadow"></div>
+</div>
+
+<div class="gn-bullet" id="gnBullet"></div>
+<div class="gn-bullet enemy-bullet" id="gnEnemyBullet"></div>
+
+<svg class="gn-angle-line" id="gnAngleLine" style="position:absolute;inset:0;width:100%;height:100%;z-index:8;pointer-events:none">
+<line id="angleLine" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-dasharray="6,4"/>
+</svg>
+
+<div class="gn-power-wrap" id="gnPower">
+<div class="gn-power-label">💪 Lực bắn - Nhấp để bắn!</div>
+<div class="gn-power-bar"><div class="gn-power-fill" id="gnPowerFill"></div></div>
+</div>
+
+<div class="gn-instruct" id="gnInstruct">🎯 Nhấp để chọn hướng bắn!</div>
+<div class="gn-angle-display" id="gnAngleDisplay">🎯 45°</div>
+
+<div class="gn-text hit-text" id="hitText">TRÚNG!</div>
+<div class="gn-text miss-text" id="missText">TRƯỢT!</div>
+<div class="gn-text ko-text" id="koText">K.O!</div>
+
+<div class="gn-explosion" id="gnExplosion">
+<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" fill="#FF6B35" opacity="0.8"/><circle cx="40" cy="40" r="20" fill="#FFD700" opacity="0.9"/><circle cx="40" cy="40" r="10" fill="#fff" opacity="0.8"/></svg>
+</div>
+</div>
+
+<div class="question-area" id="questionArea">
+<div class="qa-header">
+<div class="qa-round" id="qaRound">🔫 Lượt 1</div>
+<div class="qa-timer" id="qaTimer">⏱️ 30</div>
+</div>
+<div class="qa-question" id="qaQuestion"></div>
+<div class="qa-choices" id="qaChoices"></div>
+</div>
+</div>
+
+<div class="final-overlay" id="finalOverlay">
+<div class="final-card">
+<div class="final-trophy" id="finalTrophy">🏆</div>
+<div class="final-hp">
+<div class="final-hp-side"><div class="final-hp-label">⛏️ Steve</div><div class="final-hp-val win" id="finalPHP">100</div></div>
+<div style="font-size:1.5em;font-weight:900;color:#999">VS</div>
+<div class="final-hp-side"><div class="final-hp-label">🧟 Zombie</div><div class="final-hp-val lose" id="finalEHP">0</div></div>
+</div>
+<div class="final-message" id="finalMsg"></div>
+<div class="final-stars" id="finalStars"></div>
+<div class="final-actions">
+<a href="{{ url_for('gunny_game', subject_id=subject_id, topic_id=topic_id) }}" class="btn btn-play">🔄 Chơi lại</a>
+<a href="{{ url_for('subject', subject_id=subject_id) }}" class="btn btn-back">📋 Chọn bài khác</a>
+<a href="{{ url_for('index') }}" class="btn btn-back">🏠 Trang chủ</a>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+const G=id=>document.getElementById(id);
+
+/* ================================================================
+   GAME STATE
+   ================================================================ */
+const questions={{ questions|tojson }};
+const totalRounds=questions.length;
+let currentRound=0, playerHP=100, enemyHP=100;
+let isAnimating=false, timerInterval=null, timeLeft=30;
+let wind=0;
+let currentObstacles=[];
+let lockedAngleDeg=45;
+
+/* ================================================================
+   OBSTACLE SCENARIOS (10 random layouts)
+   ================================================================ */
+const OBSTACLE_SCENARIOS=[
+    /* 0: Tall wall center */
+    [{type:'wall',x:0.47,y:0.36,w:0.03,h:0.28}],
+    /* 1: Two offset walls */
+    [{type:'wall',x:0.33,y:0.40,w:0.025,h:0.24},{type:'wall',x:0.64,y:0.38,w:0.025,h:0.26}],
+    /* 2: Big hill center */
+    [{type:'hill',x:0.40,y:0.52,w:0.18,h:0.14}],
+    /* 3: Three scattered rocks */
+    [{type:'rock',x:0.28,y:0.58,w:0.055,h:0.05},{type:'rock',x:0.48,y:0.55,w:0.065,h:0.055},{type:'rock',x:0.67,y:0.57,w:0.055,h:0.05}],
+    /* 4: Tower + crate */
+    [{type:'tower',x:0.47,y:0.32,w:0.045,h:0.33},{type:'crate',x:0.33,y:0.57,w:0.06,h:0.06}],
+    /* 5: Two green hills */
+    [{type:'hill',x:0.32,y:0.53,w:0.14,h:0.12},{type:'hill',x:0.56,y:0.51,w:0.15,h:0.14}],
+    /* 6: Stacked crates */
+    [{type:'crate',x:0.44,y:0.56,w:0.055,h:0.055},{type:'crate',x:0.44,y:0.505,w:0.055,h:0.055},{type:'crate',x:0.50,y:0.56,w:0.055,h:0.055}],
+    /* 7: Wall with gap (shoot through!) */
+    [{type:'wall',x:0.47,y:0.25,w:0.03,h:0.18},{type:'wall',x:0.47,y:0.55,w:0.03,h:0.12}],
+    /* 8: Tree + rock */
+    [{type:'tree',x:0.37,y:0.37,w:0.07,h:0.26},{type:'rock',x:0.58,y:0.57,w:0.08,h:0.055}],
+    /* 9: Fortress (3 walls) */
+    [{type:'wall',x:0.38,y:0.38,w:0.025,h:0.27},{type:'wall',x:0.58,y:0.38,w:0.025,h:0.27},{type:'wall',x:0.38,y:0.38,w:0.225,h:0.025}],
+];
+
+function generateObstacles(){
+    const idx=Math.floor(Math.random()*OBSTACLE_SCENARIOS.length);
+    currentObstacles=OBSTACLE_SCENARIOS[idx].map(o=>({...o}));
+    renderObstacles();
+}
+
+function renderObstacles(){
+    const c=G('gnObstacles'); c.innerHTML='';
+    const scene=G('gnScene'), sw=scene.offsetWidth, sh=scene.offsetHeight;
+    currentObstacles.forEach((o,i)=>{
+        const el=document.createElement('div');
+        el.className='gn-obs '+o.type;
+        el.id='obs-'+i;
+        el.style.left=(o.x*sw)+'px';
+        el.style.top=(o.y*sh)+'px';
+        el.style.width=(o.w*sw)+'px';
+        el.style.height=(o.h*sh)+'px';
+        if(o.type==='tree') el.innerHTML='<div class="tree-top"></div><div class="tree-trunk"></div>';
+        c.appendChild(el);
+    });
+}
+
+function checkObstacleCollision(bx,by){
+    const scene=G('gnScene'), sw=scene.offsetWidth, sh=scene.offsetHeight;
+    for(let i=0;i<currentObstacles.length;i++){
+        const o=currentObstacles[i];
+        const ox=o.x*sw, oy=o.y*sh, ow=o.w*sw, oh=o.h*sh;
+        if(bx>=ox && bx<=ox+ow && by>=oy && by<=oy+oh) return i;
+    }
+    return -1;
+}
+
+/* ================================================================
+   SFX
+   ================================================================ */
+const SFX={
+    ctx:null,
+    init(){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}},
+    resume(){if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume()},
+    _tone(f,d,t,v){if(!this.ctx)return;this.resume();const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.12,this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+d);o.start();o.stop(this.ctx.currentTime+d)},
+    select(){this._tone(800,.1,'sine',.12)},
+    shoot(){if(!this.ctx)return;this.resume();const t=this.ctx.currentTime;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+.3);g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.start(t);o.stop(t+.35)},
+    explode(){if(!this.ctx)return;this.resume();const t=this.ctx.currentTime;for(let i=0;i<3;i++){const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(100+Math.random()*50,t+i*0.05);o.frequency.exponentialRampToValueAtTime(20,t+i*0.05+0.4);g.gain.setValueAtTime(.15,t+i*0.05);g.gain.exponentialRampToValueAtTime(.001,t+i*0.05+0.4);o.start(t+i*0.05);o.stop(t+i*0.05+0.4)}},
+    miss(){this._tone(300,.2,'triangle',.08)},
+    wrong(){this._tone(150,.3,'sawtooth',.15)},
+    win(){[0,.15,.3].forEach(d=>this._tone(523+d*400,.3,'sine',.1))},
+};
+SFX.init();
+document.addEventListener('click',()=>SFX.resume(),{once:true});
+
+/* ================================================================
+   WIND
+   ================================================================ */
+function randomWind(){
+    wind=Math.round((Math.random()*6-3)*10)/10;
+    const arrow=wind>0?'→':'←';
+    G('gnWind').textContent=`💨 Gió: ${wind===0?'Lặng':arrow+' '+Math.abs(wind)}`;
+}
+randomWind();
+
+/* ================================================================
+   HP MANAGEMENT
+   ================================================================ */
+function updateHP(){
+    const pPct=Math.max(0,playerHP);
+    G('hpBarPlayer').style.width=pPct+'%';
+    G('hpTextPlayer').textContent=pPct;
+    G('hpValPlayer').textContent=pPct;
+    G('hpBarPlayer').className='hp-bar '+(pPct>60?'green':pPct>30?'yellow':'red');
+    const ePct=Math.max(0,enemyHP);
+    G('hpBarEnemy').style.width=ePct+'%';
+    G('hpTextEnemy').textContent=ePct;
+    G('hpValEnemy').textContent=ePct;
+    G('hpBarEnemy').className='hp-bar '+(ePct>60?'green':ePct>30?'yellow':'red');
+}
+
+function showDamage(targetId,dmg){
+    const target=G(targetId), rect=target.getBoundingClientRect(), sr=G('gnScene').getBoundingClientRect();
+    const popup=document.createElement('div');
+    popup.className='dmg-popup'; popup.textContent='-'+dmg;
+    popup.style.left=(rect.left-sr.left+rect.width/2)+'px';
+    popup.style.top=(rect.top-sr.top)+'px';
+    G('gnScene').appendChild(popup);
+    setTimeout(()=>popup.remove(),1100);
+}
+
+/* ================================================================
+   TIMER
+   ================================================================ */
+function startTimer(){
+    timeLeft=30;G('qaTimer').textContent='⏱️ 30';G('qaTimer').classList.remove('warning');
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{timeLeft--;G('qaTimer').textContent='⏱️ '+timeLeft;if(timeLeft<=5)G('qaTimer').classList.add('warning');if(timeLeft<=0){clearInterval(timerInterval);handleAnswer(null)}},1000);
+}
+function stopTimer(){clearInterval(timerInterval)}
+
+/* ================================================================
+   SHOW QUESTION
+   ================================================================ */
+function showQuestion(){
+    if(currentRound>=totalRounds||playerHP<=0||enemyHP<=0){endGame();return;}
+    randomWind();
+    generateObstacles();
+    const q=questions[currentRound];
+    G('qaRound').textContent='🔫 Lượt '+(currentRound+1);
+    G('qaQuestion').innerHTML=q.question;
+    let html='',L=['A','B','C','D'];
+    q.choices.forEach((c,i)=>{
+        html+=`<div class="qa-choice" data-value="${c.replace(/"/g,'&quot;')}" onclick="window._sel(this)"><span class="letter">${L[i]}</span><span>${c}</span></div>`;
+    });
+    G('qaChoices').innerHTML=html;
+    G('hitText').className='gn-text hit-text';
+    G('missText').className='gn-text miss-text';
+    G('koText').className='gn-text ko-text';
+    startTimer();
+}
+
+/* ================================================================
+   HANDLE ANSWER
+   ================================================================ */
+window._sel=function(el){if(isAnimating)return;SFX.select();stopTimer();handleAnswer(el.dataset.value,el)};
+
+function handleAnswer(value,el){
+    if(isAnimating)return;isAnimating=true;stopTimer();
+    const q=questions[currentRound];
+    const correct=(value===q.answer);
+    document.querySelectorAll('.qa-choice').forEach(c=>c.style.pointerEvents='none');
+    if(el){
+        el.classList.add(correct?'correct-flash':'wrong-flash');
+        if(!correct)document.querySelectorAll('.qa-choice').forEach(c=>{if(c.dataset.value===q.answer)c.classList.add('correct-flash')});
+    } else {
+        document.querySelectorAll('.qa-choice').forEach(c=>{if(c.dataset.value===q.answer)c.classList.add('correct-flash')});
+    }
+    if(correct){ setTimeout(()=>startAimPhase(),700); }
+    else{ SFX.wrong(); setTimeout(()=>enemyShoot(),900); }
+}
+
+/* ================================================================
+   PHASE 1: AIM — angle sweeps 180° (10°→170°), click to lock
+   ================================================================ */
+let aimAngle=10, aimDir=1, aimAnim=null;
+let powerAnim=null, powerVal=0, powerDir=1;
+
+function startAimPhase(){
+    aimAngle=10; aimDir=1;
+    G('gnAngleLine').classList.add('active');
+    G('gnAngleDisplay').classList.add('active');
+    G('gnInstruct').textContent='🎯 Nhấp vào màn hình để chọn hướng bắn!';
+    G('gnInstruct').classList.add('active');
+
+    let lastT=performance.now();
+    function animAim(now){
+        const dt=(now-lastT)/1000; lastT=now;
+        aimAngle+=aimDir*30*dt; /* 30°/s → ~5.3s per sweep */
+        if(aimAngle>=170){aimAngle=170;aimDir=-1;}
+        if(aimAngle<=10){aimAngle=10;aimDir=1;}
+        G('gnCannon').style.transform='rotate('+(-aimAngle)+'deg)';
+        updateAngleLine(aimAngle);
+        G('gnAngleDisplay').textContent='🎯 '+Math.round(aimAngle)+'°';
+        aimAnim=requestAnimationFrame(animAim);
+    }
+    aimAnim=requestAnimationFrame(animAim);
+
+    function lockAim(e){
+        e.preventDefault();
+        cancelAnimationFrame(aimAnim);
+        G('gnScene').removeEventListener('click',lockAim);
+        G('gnScene').removeEventListener('touchend',lockAim);
+        lockedAngleDeg=aimAngle;
+        /* freeze cannon + line at locked angle */
+        G('gnCannon').style.transform='rotate('+(-lockedAngleDeg)+'deg)';
+        startPowerPhase();
+    }
+    G('gnScene').addEventListener('click',lockAim);
+    G('gnScene').addEventListener('touchend',lockAim);
+}
+
+function updateAngleLine(angleDeg){
+    const scene=G('gnScene'), sr=scene.getBoundingClientRect();
+    const cannon=G('gnCannon'), cr=cannon.getBoundingClientRect();
+    /* cannon origin = left-center of the cannon element */
+    const ox=cr.left-sr.left, oy=cr.top-sr.top+cr.height/2;
+    /* tip = cannon length away along the angle */
+    const rad=angleDeg*Math.PI/180;
+    const cannonLen=cr.width;
+    const tipX=ox+Math.cos(rad)*cannonLen;
+    const tipY=oy-Math.sin(rad)*cannonLen;
+    /* laser extends from tip outward */
+    const laserLen=scene.offsetWidth*0.18;
+    const endX=tipX+Math.cos(rad)*laserLen;
+    const endY=tipY-Math.sin(rad)*laserLen;
+    const line=G('angleLine');
+    line.setAttribute('x1',tipX); line.setAttribute('y1',tipY);
+    line.setAttribute('x2',endX); line.setAttribute('y2',endY);
+}
+
+/* ================================================================
+   PHASE 2: POWER — bar oscillates 0–100%, click to lock & fire
+   ================================================================ */
+function startPowerPhase(){
+    powerVal=0; powerDir=1;
+    G('gnPower').classList.add('active');
+    G('gnInstruct').textContent='💪 Nhấp để chọn lực bắn!';
+
+    function animPow(){
+        powerVal+=powerDir*1.5;
+        if(powerVal>=100){powerVal=100;powerDir=-1;}
+        if(powerVal<=0){powerVal=0;powerDir=1;}
+        G('gnPowerFill').style.width=powerVal+'%';
+        powerAnim=requestAnimationFrame(animPow);
+    }
+    powerAnim=requestAnimationFrame(animPow);
+
+    function lockPow(e){
+        e.preventDefault();
+        cancelAnimationFrame(powerAnim);
+        G('gnScene').removeEventListener('click',lockPow);
+        G('gnScene').removeEventListener('touchend',lockPow);
+        G('gnPower').classList.remove('active');
+        G('gnInstruct').classList.remove('active');
+        G('gnAngleLine').classList.remove('active');
+        G('gnAngleDisplay').classList.remove('active');
+        fireProjectile(lockedAngleDeg, powerVal/100, true);
+    }
+    G('gnScene').addEventListener('click',lockPow);
+    G('gnScene').addEventListener('touchend',lockPow);
+}
+
+/* ================================================================
+   FIRE PROJECTILE — physics simulation with obstacle collision
+   Angle + Power determine trajectory; gravity + wind affect flight
+   ================================================================ */
+function fireProjectile(angleDeg, power, isPlayer){
+    SFX.shoot();
+    const scene=G('gnScene'), sw=scene.offsetWidth, sh=scene.offsetHeight;
+    const bullet=G(isPlayer?'gnBullet':'gnEnemyBullet');
+    const groundY=sh*0.68;
+
+    let bx, by;
+    const rad=angleDeg*Math.PI/180;
+    /* velocity scales with scene width so physics works at any size */
+    const V=sw*(0.008+power*0.008);
+
+    if(isPlayer){
+        bx=sw*0.15; by=sh*0.575;
+        G('gnPlayer').style.transform='translateX(-5px)';
+        setTimeout(()=>G('gnPlayer').style.transform='',200);
+    } else {
+        bx=sw*0.85; by=sh*0.575;
+        G('gnEnemy').style.transform='translateX(5px)';
+        setTimeout(()=>G('gnEnemy').style.transform='',200);
+    }
+
+    let vx = isPlayer ? V*Math.cos(rad) : -V*Math.cos(rad);
+    let vy = -V*Math.sin(rad);
+    const grav=sw*0.0002;
+    const windF=wind*sw*0.00004;
+
+    /* target detection zone */
+    const targetX=isPlayer?sw*0.88:sw*0.12;
+    const targetY=sh*0.575;
+    const hitRadius=sw*0.075;
+
+    bullet.style.display='block';
+    let frame=0;
+
+    function step(){
+        frame++;
+        bx+=vx; by+=vy;
+        vy+=grav; vx+=windF;
+        bullet.style.left=bx+'px'; bullet.style.top=by+'px';
+        bullet.style.transform=`translate(-50%,-50%) rotate(${frame*12}deg)`;
+
+        /* obstacle collision */
+        const oi=checkObstacleCollision(bx,by);
+        if(oi>=0){
+            bullet.style.display='none';
+            showExplosion(bx,by); SFX.explode();
+            const oel=document.getElementById('obs-'+oi);
+            if(oel){oel.classList.add('obs-hit');setTimeout(()=>oel.classList.remove('obs-hit'),500);}
+            if(isPlayer) G('missText').classList.add('show');
+            setTimeout(()=>{currentRound++;isAnimating=false;showQuestion()},1500);
+            return;
+        }
+
+        /* hit target? */
+        const dx=bx-targetX, dy=by-targetY;
+        if(Math.sqrt(dx*dx+dy*dy)<hitRadius){
+            bullet.style.display='none';
+            onImpact(bx,by,true,isPlayer);
+            return;
+        }
+
+        /* hit ground or out of bounds */
+        if(by>groundY||bx<-30||bx>sw+30||by<-sh||frame>400){
+            bullet.style.display='none';
+            showExplosion(bx,Math.min(by,groundY)); SFX.miss();
+            if(isPlayer) G('missText').classList.add('show');
+            setTimeout(()=>{currentRound++;isAnimating=false;showQuestion()},1500);
+            return;
+        }
+        requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function showExplosion(x,y){
+    const exp=G('gnExplosion');
+    exp.style.left=x+'px'; exp.style.top=y+'px';
+    exp.className='gn-explosion'; void exp.offsetWidth;
+    exp.classList.add('show');
+    setTimeout(()=>exp.classList.remove('show'),700);
+}
+
+/* ================================================================
+   IMPACT — hit confirmed
+   ================================================================ */
+function onImpact(x,y,isHit,isPlayer){
+    showExplosion(x,y);
+    if(isHit){
+        SFX.explode();
+        const dmg=15+Math.floor(Math.random()*11);
+        if(isPlayer){
+            enemyHP=Math.max(0,enemyHP-dmg);
+            G('gnEnemy').classList.add('hit');setTimeout(()=>G('gnEnemy').classList.remove('hit'),500);
+            showDamage('gnEnemy',dmg);
+            G('hitText').classList.add('show');
+        } else {
+            playerHP=Math.max(0,playerHP-dmg);
+            G('gnPlayer').classList.add('hit');setTimeout(()=>G('gnPlayer').classList.remove('hit'),500);
+            showDamage('gnPlayer',dmg);
+        }
+        updateHP();
+        if(enemyHP<=0||playerHP<=0){
+            setTimeout(()=>{G('koText').classList.add('show');setTimeout(()=>endGame(),1500)},600);
+            return;
+        }
+    } else {
+        SFX.miss();
+        if(isPlayer) G('missText').classList.add('show');
+    }
+    setTimeout(()=>{currentRound++;isAnimating=false;showQuestion()},1500);
+}
+
+/* ================================================================
+   ENEMY SHOOT — auto, random angle & power
+   ================================================================ */
+function enemyShoot(){
+    const aDeg=25+Math.random()*40; /* 25°–65° */
+    const pow=0.5+Math.random()*0.4; /* 50%–90% */
+    fireProjectile(aDeg, pow, false);
+}
+
+/* ================================================================
+   END GAME
+   ================================================================ */
+function endGame(){
+    stopTimer();
+    const php=Math.max(0,playerHP), ehp=Math.max(0,enemyHP);
+    G('finalPHP').textContent=php; G('finalEHP').textContent=ehp;
+    G('finalPHP').className='final-hp-val '+(php>=ehp?'win':'lose');
+    G('finalEHP').className='final-hp-val '+(ehp>=php?'win':'lose');
+    let trophy,msg;
+    if(ehp<=0){trophy='🏆';msg='Tuyệt vời! Bạn đã tiêu diệt Zombie! 💥';}
+    else if(php>ehp){trophy='🥇';msg='Chiến thắng! Zombie sắp gục rồi! 🎯';}
+    else if(php===ehp){trophy='🤝';msg='Hòa nhau! Cố gắng hơn nhé! 💪';}
+    else if(php>0){trophy='🥉';msg='Thua rồi! Học thêm và thử lại nha! 📖';}
+    else{trophy='😵';msg='Zombie quá mạnh! Luyện tập thêm nhé! 🌈';}
+    G('finalTrophy').textContent=trophy; G('finalMsg').textContent=msg;
+    const pct=Math.max(0,(100-ehp));
+    const sc=Math.min(5,Math.round(pct/20));
+    let stars='';for(let i=0;i<5;i++)stars+=i<sc?'⭐':'☆';
+    G('finalStars').textContent=stars;
+    G('finalOverlay').classList.add('show');
+    if(ehp<=0)SFX.win();
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+generateObstacles();
+window.addEventListener('resize',renderObstacles);
+showQuestion();
+
+})();
+</script>
+{% endblock %}

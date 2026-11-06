@@ -1,0 +1,1243 @@
+{% extends "base.html" %}
+{% block title %}⚽ Đá Phạt 3D - {{ topic.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+*{box-sizing:border-box}
+.football-game{max-width:960px;margin:0 auto;padding:10px;user-select:none}
+
+/* ============ PLAYER SELECT ============ */
+.ps-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0a1628,#1a2a4a,#0d1f3c);z-index:200;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:20px}
+.ps-card{background:rgba(255,255,255,0.06);border-radius:24px;padding:28px;max-width:820px;width:100%;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1)}
+.ps-title{text-align:center;color:#FFD700;font-size:1.8em;font-weight:900;margin-bottom:6px}
+.ps-subtitle{text-align:center;color:rgba(255,255,255,0.6);font-size:0.95em;margin-bottom:22px}
+.ps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.ps-player{background:rgba(255,255,255,0.07);border:3px solid transparent;border-radius:16px;padding:14px 8px 10px;text-align:center;cursor:pointer;transition:all 0.25s;position:relative;overflow:hidden}
+.ps-player:hover{background:rgba(255,255,255,0.12);transform:translateY(-4px);box-shadow:0 8px 25px rgba(0,0,0,0.3)}
+.ps-player.selected{border-color:#FFD700;background:rgba(255,215,0,0.12);box-shadow:0 0 20px rgba(255,215,0,0.3)}
+.ps-player.selected::after{content:'✔';position:absolute;top:6px;right:8px;background:#FFD700;color:#1a1a2e;width:22px;height:22px;border-radius:50%;font-size:0.7em;font-weight:900;display:flex;align-items:center;justify-content:center}
+.ps-avatar{width:100px;height:100px;margin:0 auto 6px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;background:linear-gradient(180deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.12) 100%);border:2px solid rgba(255,255,255,0.1)}
+.ps-avatar img{width:100%;height:100%;object-fit:cover;object-position:center top;position:relative;z-index:2;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))}
+.ps-avatar svg{display:none}
+.ps-name{color:#fff;font-weight:800;font-size:0.82em;margin-bottom:2px}
+.ps-club{font-size:0.68em;color:rgba(255,255,255,0.5);margin-bottom:1px}
+.ps-role{font-size:0.65em;color:#FFD700;opacity:0.8}
+.ps-start{display:block;margin:0 auto;padding:16px 48px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a2e;font-weight:900;font-size:1.2em;border:none;border-radius:16px;cursor:pointer;transition:all 0.2s;opacity:0.4;pointer-events:none}
+.ps-start.ready{opacity:1;pointer-events:auto;animation:startPulse 1.5s ease infinite}
+.ps-start.ready:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(255,215,0,0.4)}
+@keyframes startPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,0.4)}50%{box-shadow:0 0 0 12px rgba(255,215,0,0)}}
+
+/* ============ VS OVERLAY ============ */
+.vs-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0a1628,#1a2a4a);z-index:190;display:none;align-items:center;justify-content:center;flex-direction:column;gap:24px}
+.vs-overlay.show{display:flex}
+.vs-row{display:flex;align-items:center;gap:50px}
+.vs-side{text-align:center}
+.vs-fig{width:140px;height:160px;border-radius:16px;border:3px solid rgba(255,255,255,0.2);display:flex;align-items:flex-end;justify-content:center;margin:0 auto 8px;overflow:hidden;position:relative;background:linear-gradient(180deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.15) 100%);box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+.vs-fig img{width:100%;height:100%;object-fit:contain;object-position:center bottom;position:relative;z-index:2;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.5))}
+.vs-fig svg{width:80px;height:100px;position:relative;z-index:1}
+.vs-side.left{animation:vsSlideL 0.6s ease forwards}
+.vs-side.right{animation:vsSlideR 0.6s ease forwards}
+@keyframes vsSlideL{from{transform:translateX(-120px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes vsSlideR{from{transform:translateX(120px);opacity:0}to{transform:translateX(0);opacity:1}}
+.vs-name{color:#fff;font-weight:900;font-size:1.3em}
+.vs-text{color:#FFD700;font-size:3.5em;font-weight:900;animation:vsPop 0.4s ease 0.4s forwards;transform:scale(0);opacity:0}
+@keyframes vsPop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:1}}
+
+/* ============ SCORE PANEL ============ */
+.score-panel{display:flex;gap:0;border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.sp-team{flex:1;padding:10px 16px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:0.95em}
+.sp-left{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff}
+.sp-right{background:linear-gradient(135deg,#E67E22,#D35400);color:#fff}
+.sp-name{min-width:90px}
+.sp-dots{display:flex;gap:4px;flex:1;justify-content:center}
+.sp-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);transition:all .3s}
+.sp-dot.goal{background:#2ecc71;border-color:#27ae60;box-shadow:0 0 6px rgba(46,204,113,.5)}
+.sp-dot.miss{background:#e74c3c;border-color:#c0392b;box-shadow:0 0 6px rgba(231,76,60,.5)}
+.sp-score{font-size:1.6em;font-weight:900;min-width:30px;text-align:center}
+
+/* ============ 3D SCENE (First-person perspective) ============ */
+.scene{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.5);margin-bottom:14px;background:#0d5f22;cursor:default}
+.scene.aiming{cursor:crosshair}
+
+/* Sky - richer gradient with warm light */
+.sky{position:absolute;top:0;left:0;width:100%;height:34%;z-index:0;
+  background:linear-gradient(180deg,#1a4f8a 0%,#2563a8 15%,#4a90d9 35%,#6bb0e8 55%,#87CEEB 72%,#b4dfa0 90%,#8fc77a 100%);
+  overflow:hidden}
+/* Decorative clouds */
+.sky::before,.sky::after{content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,0.18);filter:blur(6px)}
+.sky::before{width:120px;height:30px;top:15%;left:12%;animation:cloudDrift 30s linear infinite}
+.sky::after{width:90px;height:22px;top:25%;left:65%;animation:cloudDrift 24s linear infinite 8s}
+@keyframes cloudDrift{0%{transform:translateX(0)}100%{transform:translateX(80px)}}
+
+/* Stadium floodlights glow hint */
+.sky-glow{position:absolute;top:0;left:50%;transform:translateX(-50%);width:60%;height:34%;z-index:0;
+  background:radial-gradient(ellipse at 50% 100%,rgba(255,255,200,0.08) 0%,transparent 70%);pointer-events:none}
+
+/* Crowd (disabled) */
+.crowd-stands{display:none}
+
+/* Goal 3D */
+.goal-3d{position:absolute;top:16%;left:50%;transform:translateX(-50%);width:50%;height:18%;z-index:3}
+.goal-crossbar{position:absolute;top:0;left:0;width:100%;height:7px;background:linear-gradient(180deg,#fff 0%,#e8e8e8 40%,#ccc 100%);border-radius:4px 4px 0 0;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+.goal-post{position:absolute;top:0;width:7px;height:100%;background:linear-gradient(90deg,#fff,#e0e0e0,#ccc);border-radius:4px;box-shadow:2px 2px 6px rgba(0,0,0,0.3)}
+.goal-post.left{left:0}.goal-post.right{right:0}
+.goal-net{position:absolute;top:7px;left:7px;right:7px;bottom:0;z-index:-1;border-radius:0 0 2px 2px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0px,transparent 7px,rgba(255,165,0,0.22) 7px,rgba(255,165,0,0.22) 9px),repeating-linear-gradient(0deg,transparent 0px,transparent 7px,rgba(255,165,0,0.22) 7px,rgba(255,165,0,0.22) 9px),linear-gradient(180deg,rgba(255,200,100,0.12),rgba(255,165,0,0.08))}
+.goal-net.shake{animation:netShake .7s ease}
+@keyframes netShake{0%{transform:none}8%{transform:translate(6px,4px) skewX(2deg)}16%{transform:translate(-5px,-3px) skewX(-1.5deg)}24%{transform:translate(4px,3px) skewX(1deg)}32%{transform:translate(-3px,-2px) skewX(-0.8deg)}42%{transform:translate(2px,1.5px)}55%{transform:translate(-1.5px,-1px)}70%{transform:translate(0.8px,0.5px)}85%{transform:translate(-0.3px,-0.2px)}100%{transform:none}}
+
+/* Scene camera shake on goal */
+.scene.goal-shake{animation:sceneShake .5s ease}
+@keyframes sceneShake{0%{transform:none}10%{transform:translate(-3px,2px) rotate(-0.3deg)}20%{transform:translate(4px,-2px) rotate(0.2deg)}30%{transform:translate(-2px,3px) rotate(-0.2deg)}40%{transform:translate(3px,-1px) rotate(0.15deg)}55%{transform:translate(-1px,1px)}70%{transform:translate(0.5px,-0.5px)}100%{transform:none}}
+
+/* Grass/dust particles on kick */
+.grass-particle{position:absolute;z-index:12;pointer-events:none;border-radius:1px;opacity:1}
+.grass-particle.fly{animation:grassFly var(--gDur,.6s) cubic-bezier(.2,.6,.3,1) forwards}
+@keyframes grassFly{0%{transform:translate(0,0) rotate(0);opacity:1}40%{opacity:.8}100%{transform:translate(var(--gx,10px),var(--gy,-30px)) rotate(var(--gr,180deg));opacity:0}}
+
+/* Kicker idle subtle sway */
+.kicker-3d.idle{animation:kickerIdle 3s ease-in-out infinite}
+@keyframes kickerIdle{0%,100%{transform:translateX(-50%) translateY(0)}30%{transform:translateX(-50%) translateY(-1px)}60%{transform:translateX(-50%) translateY(0.5px)}}
+
+/* Pitch - First person perspective from behind kicker */
+.pitch-3d{position:absolute;bottom:0;left:0;width:100%;height:68%;z-index:2;overflow:hidden}
+.pitch-ground{position:absolute;inset:0;transform-origin:bottom center;transform:perspective(400px) rotateX(3deg);
+  background:
+    /* Bold mowing stripes (alternating lighter/darker bands like real pitch) */
+    repeating-linear-gradient(0deg,
+      rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 22px,
+      rgba(0,0,0,0.06) 22px, rgba(0,0,0,0.06) 44px
+    ),
+    /* Fine vertical grass blade texture */
+    repeating-linear-gradient(2deg,
+      transparent 0px, transparent 1px,
+      rgba(30,80,30,0.06) 1px, rgba(30,80,30,0.06) 2px
+    ),
+    /* Subtle cross-hatch for natural randomness */
+    repeating-linear-gradient(88deg,
+      transparent 0px, transparent 2px,
+      rgba(20,60,20,0.03) 2px, rgba(20,60,20,0.03) 3px
+    ),
+    /* Depth gradient: brighter near camera (bottom), darker near goal (top) */
+    linear-gradient(0deg,
+      #4ec25a 0%, #44b450 15%, #3ba646 35%, #349a3e 55%, #2d8a36 75%, #267a2e 100%
+    ),
+    /* Radial center highlight (fresh-cut center strip look) */
+    radial-gradient(ellipse at 50% 60%, rgba(80,200,90,0.15) 0%, transparent 50%);
+}
+/* Grass shimmer + light grain overlay */
+.pitch-shimmer{position:absolute;inset:0;transform-origin:bottom center;transform:perspective(400px) rotateX(3deg);
+  background:
+    /* Diagonal light shimmer (sun reflection) */
+    repeating-linear-gradient(165deg,
+      transparent 0px, transparent 50px,
+      rgba(255,255,200,0.025) 50px, rgba(255,255,200,0.025) 52px
+    ),
+    /* Micro noise (tiny dots for grass grain) */
+    repeating-conic-gradient(rgba(0,0,0,0.015) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px;
+  pointer-events:none;
+}
+/* Ambient shadow near the goal (depth) */
+.pitch-shadow{position:absolute;top:0;left:0;width:100%;height:30%;
+  background:linear-gradient(180deg,rgba(0,0,0,0.14) 0%,rgba(0,0,0,0.04) 60%,transparent 100%);
+  pointer-events:none;
+}
+/* 16.5m penalty box - clear thick white lines */
+.field-line-penalty{position:absolute;top:0;left:50%;transform:translateX(-50%);width:58%;height:46%;
+  border:3px solid rgba(255,255,255,0.6);border-top:none;
+  clip-path:polygon(6% 0%,94% 0%,100% 100%,0% 100%);
+  filter:drop-shadow(0 0 3px rgba(255,255,255,0.2))}
+/* 5.5m 6-yard box */
+.field-line-6yard{position:absolute;top:0;left:50%;transform:translateX(-50%);width:30%;height:18%;
+  border:3px solid rgba(255,255,255,0.5);border-top:none;
+  clip-path:polygon(4% 0%,96% 0%,100% 100%,0% 100%);
+  filter:drop-shadow(0 0 2px rgba(255,255,255,0.15))}
+/* Goal line */
+.field-line-goal{position:absolute;top:0;left:18%;width:64%;height:3px;
+  background:rgba(255,255,255,0.7);
+  box-shadow:0 0 4px rgba(255,255,255,0.3)}
+/* Penalty spot */
+.penalty-spot{position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);
+  width:10px;height:7px;background:#fff;border-radius:50%;
+  box-shadow:0 1px 4px rgba(0,0,0,0.4),0 0 6px rgba(255,255,255,0.3)}
+/* Penalty arc (top of 16.5m box) */
+.penalty-arc{position:absolute;top:45%;left:50%;transform:translateX(-50%);
+  width:22%;height:8%;border:3px solid rgba(255,255,255,0.45);
+  border-top:none;border-radius:0 0 50% 50%;
+  clip-path:polygon(0% 0%,100% 0%,100% 100%,0% 100%)}
+/* Center circle arc at very bottom */
+.center-circle-arc{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:32%;height:14%;border:2px solid rgba(255,255,255,0.22);
+  border-bottom:none;border-radius:50% 50% 0 0}
+/* Halfway line (bottom edge of visible pitch) */
+.halfway-line{position:absolute;bottom:0;left:5%;width:90%;height:2px;
+  background:rgba(255,255,255,0.22)}
+/* Corner flag markers (decorative) */
+.corner-flag{position:absolute;bottom:0;width:4px;height:14px;z-index:3}
+.corner-flag::after{content:'';position:absolute;top:0;width:8px;height:6px;border-radius:0 2px 2px 0}
+.corner-flag.left-flag{left:5%;background:rgba(255,255,255,0.35)}
+.corner-flag.left-flag::after{left:4px;background:rgba(255,50,50,0.6)}
+.corner-flag.right-flag{right:5%;background:rgba(255,255,255,0.35)}
+.corner-flag.right-flag::after{right:4px;left:auto;border-radius:2px 0 0 2px;background:rgba(255,50,50,0.6)}
+
+/* ============ FREE KICK WALL ============ */
+.fk-wall{position:absolute;z-index:4;display:none;transform:translateX(-50%)}
+.fk-wall.active{display:block}
+.fk-wall img{height:138px;object-fit:contain;filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.5));pointer-events:none}
+.fk-wall-jump{animation:wallJump 0.5s ease}
+@keyframes wallJump{0%{transform:translateX(-50%) translateY(0)}30%{transform:translateX(-50%) translateY(-20px)}60%{transform:translateX(-50%) translateY(-12px)}100%{transform:translateX(-50%) translateY(0)}}
+
+/* Free kick position indicator */
+.fk-pos-label{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);z-index:12;background:rgba(0,0,0,0.6);color:#FFD700;font-weight:700;font-size:0.7em;padding:4px 12px;border-radius:10px;white-space:nowrap;pointer-events:none;backdrop-filter:blur(3px)}
+
+/* ============ AIMING TARGET (auto-oscillating) ============ */
+.aim-target{position:absolute;z-index:15;pointer-events:none;display:none;transform:translate(-50%,-50%)}
+.aim-target.active{display:block}
+.aim-target svg{width:50px;height:50px;filter:drop-shadow(0 0 10px rgba(255,0,0,0.6));animation:targetPulse 0.8s ease-in-out infinite}
+@keyframes targetPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+/* Aim zone - full scene overlay to capture clicks */
+.aim-zone{position:absolute;top:0;left:0;width:100%;height:100%;z-index:14;cursor:pointer;display:none}
+.aim-zone.active{display:block}
+/* Shot direction arrow */
+.aim-arrow{position:absolute;top:0;left:0;width:100%;height:100%;z-index:13;pointer-events:none;display:none;overflow:visible}
+.aim-arrow.active{display:block}
+
+/* Instruction banner */
+.aim-instruction{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);z-index:16;background:rgba(0,0,0,0.8);color:#FFD700;font-weight:800;font-size:clamp(0.8em,2.5vw,1.1em);padding:10px 24px;border-radius:24px;white-space:nowrap;pointer-events:none;display:none;animation:instructPulse 1s ease infinite;backdrop-filter:blur(4px)}
+.aim-instruction.active{display:block}
+@keyframes instructPulse{0%,100%{opacity:1}50%{opacity:.65}}
+
+/* ============ GOALKEEPER (IMAGE-BASED 3D) ============ */
+.gk-3d{position:absolute;top:28%;left:50%;transform:translate(-50%,-50%);z-index:5;width:80px;height:120px;transition:none;perspective:600px}
+.gk-3d .gk-figure{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+.gk-3d .gk-img{width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.6)) brightness(1.05) contrast(1.05);image-rendering:auto;pointer-events:none}
+.gk-3d .gk-shadow{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:72px;height:11px;background:radial-gradient(ellipse,rgba(0,0,0,0.35),transparent);border-radius:50%;transition:all 0.3s}
+/* GK idle ready-stance bounce + 3D sway */
+.gk-3d.ready .gk-figure{animation:gkIdle3D 2s ease-in-out infinite}
+@keyframes gkIdle3D{
+    0%,100%{transform:translateY(0) rotateY(0deg) rotateX(0deg) scaleY(1)}
+    15%{transform:translateY(-3px) rotateY(2deg) rotateX(1deg) scaleY(1.01)}
+    30%{transform:translateY(1px) rotateY(-1deg) rotateX(-0.5deg) scaleY(0.995)}
+    50%{transform:translateY(-2px) rotateY(-2deg) rotateX(0.5deg) scaleY(1.008)}
+    65%{transform:translateY(1px) rotateY(1.5deg) rotateX(-0.5deg) scaleY(0.997)}
+    80%{transform:translateY(-1px) rotateY(-0.5deg) rotateX(0.3deg) scaleY(1.003)}
+}
+/* Arms movement illusion via slight skew during idle */
+.gk-3d.ready .gk-img{animation:gkArmsReady 2s ease-in-out infinite}
+@keyframes gkArmsReady{
+    0%,100%{transform:scaleX(1)}
+    25%{transform:scaleX(1.03)}
+    50%{transform:scaleX(0.98)}
+    75%{transform:scaleX(1.02)}
+}
+/* GK dive LEFT - full stretch with 3D rotation */
+.gk-3d.dive-left .gk-figure{animation:gkDiveLeft3D .85s cubic-bezier(.25,.1,.15,1) forwards}
+@keyframes gkDiveLeft3D{
+    0%{transform:translate(0,0) rotate(0) scaleX(1) scaleY(1) rotateY(0deg)}
+    8%{transform:translate(-5%,-5%) rotate(-5deg) scaleX(1.05) scaleY(0.96) rotateY(8deg)}
+    18%{transform:translate(-30%,-2%) rotate(-18deg) scaleX(1.15) scaleY(0.98) rotateY(15deg)}
+    30%{transform:translate(-90%,5%) rotate(-40deg) scaleX(1.3) scaleY(1.02) rotateY(20deg)}
+    45%{transform:translate(-160%,12%) rotate(-62deg) scaleX(1.4) scaleY(1.04) rotateY(18deg)}
+    62%{transform:translate(-220%,18%) rotate(-78deg) scaleX(1.5) scaleY(1.03) rotateY(12deg)}
+    80%{transform:translate(-250%,23%) rotate(-85deg) scaleX(1.55) scaleY(1.01) rotateY(5deg)}
+    100%{transform:translate(-260%,25%) rotate(-88deg) scaleX(1.6) scaleY(1) rotateY(0deg)}
+}
+.gk-3d.dive-left .gk-shadow{animation:gkShadowLeft .85s forwards}
+@keyframes gkShadowLeft{to{transform:translateX(-200%) scaleX(2);opacity:0.15}}
+/* GK dive RIGHT */
+.gk-3d.dive-right .gk-figure{animation:gkDiveRight3D .85s cubic-bezier(.25,.1,.15,1) forwards}
+@keyframes gkDiveRight3D{
+    0%{transform:translate(0,0) rotate(0) scaleX(1) scaleY(1) rotateY(0deg)}
+    8%{transform:translate(5%,-5%) rotate(5deg) scaleX(1.05) scaleY(0.96) rotateY(-8deg)}
+    18%{transform:translate(30%,-2%) rotate(18deg) scaleX(1.15) scaleY(0.98) rotateY(-15deg)}
+    30%{transform:translate(90%,5%) rotate(40deg) scaleX(1.3) scaleY(1.02) rotateY(-20deg)}
+    45%{transform:translate(160%,12%) rotate(62deg) scaleX(1.4) scaleY(1.04) rotateY(-18deg)}
+    62%{transform:translate(220%,18%) rotate(78deg) scaleX(1.5) scaleY(1.03) rotateY(-12deg)}
+    80%{transform:translate(250%,23%) rotate(85deg) scaleX(1.55) scaleY(1.01) rotateY(-5deg)}
+    100%{transform:translate(260%,25%) rotate(88deg) scaleX(1.6) scaleY(1) rotateY(0deg)}
+}
+.gk-3d.dive-right .gk-shadow{animation:gkShadowRight .85s forwards}
+@keyframes gkShadowRight{to{transform:translateX(200%) scaleX(2);opacity:0.15}}
+/* GK dive CENTER - spread wide */
+.gk-3d.dive-center .gk-figure{animation:gkDiveCenter3D .7s cubic-bezier(.25,.1,.15,1) forwards}
+@keyframes gkDiveCenter3D{
+    0%{transform:translate(0,0) scale(1) scaleY(1) rotateX(0deg)}
+    12%{transform:translate(0,-5%) scaleY(0.92) scaleX(1.1) rotateX(5deg)}
+    28%{transform:translate(0,5%) scaleY(0.78) scaleX(1.4) rotateX(12deg)}
+    45%{transform:translate(0,15%) scaleY(0.66) scaleX(1.7) rotateX(18deg)}
+    65%{transform:translate(0,25%) scaleY(0.58) scaleX(2) rotateX(22deg)}
+    85%{transform:translate(0,28%) scaleY(0.55) scaleX(2.15) rotateX(20deg)}
+    100%{transform:translate(0,30%) scaleY(0.53) scaleX(2.2) rotateX(15deg)}
+}
+.gk-3d.dive-center .gk-shadow{animation:gkShadowCenter .7s forwards}
+@keyframes gkShadowCenter{to{transform:translateX(-50%) scaleX(3);opacity:0.25}}
+/* GK celebrate - jump + 3D twist */
+.gk-3d.celebrate .gk-figure{animation:gkCelebrate3D 1.4s ease}
+@keyframes gkCelebrate3D{
+    0%{transform:translate(0,0) scale(1) rotate(0) rotateY(0deg)}
+    10%{transform:translate(0,-8%) scale(1.04) rotate(0) rotateY(10deg)}
+    20%{transform:translate(0,-22%) scale(1.12) rotate(3deg) rotateY(-15deg)}
+    30%{transform:translate(0,-18%) scale(1.08) rotate(-2deg) rotateY(12deg)}
+    40%{transform:translate(0,-2%) scale(1.02) rotate(0) rotateY(-8deg)}
+    50%{transform:translate(0,-12%) scale(1.08) rotate(2deg) rotateY(10deg)}
+    60%{transform:translate(0,-5%) scale(1.04) rotate(-1deg) rotateY(-5deg)}
+    72%{transform:translate(0,0) scale(1) rotate(0) rotateY(0deg)}
+    82%{transform:translate(0,-5%) scale(1.03) rotate(1deg) rotateY(5deg)}
+    92%{transform:translate(0,-1%) scale(1.01) rotate(0) rotateY(-2deg)}
+    100%{transform:translate(0,0) scale(1) rotate(0) rotateY(0deg)}
+}
+
+/* ============ BALL ============ */
+.ball-3d{position:absolute;top:80%;left:50%;transform:translate(-50%,-50%);z-index:10;transition:none}
+.ball-3d img{width:24px;height:24px;object-fit:contain;filter:drop-shadow(1px 3px 5px rgba(0,0,0,0.6));pointer-events:none}
+.ball-shadow{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:17px;height:5px;background:radial-gradient(ellipse,rgba(0,0,0,0.35),transparent);border-radius:50%}
+
+/* Ball flight - JS-driven smooth animation, CSS fallback classes still available */
+.ball-3d.flying{transition:none}
+/* Saved deflections with more phases for smoother flight */
+.ball-3d.deflect-left{animation:dL .85s cubic-bezier(.2,.4,.3,1) forwards}
+.ball-3d.deflect-right{animation:dR .85s cubic-bezier(.2,.4,.3,1) forwards}
+.ball-3d.deflect-center{animation:dC .85s cubic-bezier(.2,.4,.3,1) forwards}
+@keyframes dL{0%{top:80%;left:50%;transform:translate(-50%,-50%) scale(1) rotate(0)}15%{top:65%;left:44%;transform:translate(-50%,-50%) scale(.8) rotate(100deg)}30%{top:50%;left:36%;transform:translate(-50%,-50%) scale(.6) rotate(220deg)}50%{top:35%;left:24%;transform:translate(-50%,-50%) scale(.45) rotate(380deg)}70%{top:22%;left:14%;transform:translate(-50%,-50%) scale(.35) rotate(500deg);opacity:.6}100%{top:10%;left:5%;transform:translate(-50%,-50%) scale(.25) rotate(680deg);opacity:0}}
+@keyframes dR{0%{top:80%;left:50%;transform:translate(-50%,-50%) scale(1) rotate(0)}15%{top:65%;left:56%;transform:translate(-50%,-50%) scale(.8) rotate(100deg)}30%{top:50%;left:64%;transform:translate(-50%,-50%) scale(.6) rotate(220deg)}50%{top:35%;left:76%;transform:translate(-50%,-50%) scale(.45) rotate(380deg)}70%{top:22%;left:86%;transform:translate(-50%,-50%) scale(.35) rotate(500deg);opacity:.6}100%{top:10%;left:95%;transform:translate(-50%,-50%) scale(.25) rotate(680deg);opacity:0}}
+@keyframes dC{0%{top:80%;left:50%;transform:translate(-50%,-50%) scale(1) rotate(0)}20%{top:60%;left:50%;transform:translate(-50%,-50%) scale(.65) rotate(150deg)}35%{top:48%;left:51%;transform:translate(-50%,-50%) scale(.5) rotate(260deg)}50%{top:58%;left:53%;transform:translate(-50%,-50%) scale(.55) rotate(370deg)}70%{top:68%;left:56%;transform:translate(-50%,-50%) scale(.58) rotate(470deg);opacity:.5}100%{top:85%;left:62%;transform:translate(-50%,-50%) scale(.6) rotate(600deg);opacity:0}}
+
+/* ============ KICKER (IMAGE-BASED 3D) ============ */
+.kicker-3d{position:absolute;bottom:0;left:50%;transform:translateX(-50%);z-index:4;width:120px;height:180px;perspective:600px}
+.kicker-3d .kicker-figure{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+.kicker-3d .kicker-img{width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.6)) brightness(1.05) contrast(1.05);image-rendering:auto;pointer-events:none}
+.kicker-3d .kicker-shadow{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:86px;height:13px;background:radial-gradient(ellipse,rgba(0,0,0,0.3),transparent);border-radius:50%}
+/* Kicker idle sway */
+.kicker-3d.idle .kicker-figure{animation:kickerIdle3D 2.5s ease-in-out infinite}
+@keyframes kickerIdle3D{
+    0%,100%{transform:translateY(0) rotateY(0deg) scale(1)}
+    25%{transform:translateY(-2px) rotateY(1deg) scale(1.003)}
+    50%{transform:translateY(0) rotateY(-1deg) scale(0.998)}
+    75%{transform:translateY(-1px) rotateY(0.5deg) scale(1.002)}
+}
+/* Realistic multi-phase kick with 3D */
+.kicker-3d.kicking .kicker-figure{animation:kick3D 1.1s cubic-bezier(.3,0,.2,1)}
+@keyframes kick3D{
+    0%{transform:translateX(0) translateY(0) rotate(0) scale(1) rotateY(0deg)}
+    8%{transform:translateX(0) translateY(-4px) rotate(0) scale(1) rotateY(2deg)}
+    14%{transform:translateX(0) translateY(-8px) rotate(0) scale(1) rotateY(4deg)}
+    22%{transform:translateX(0) translateY(-10px) rotate(-4deg) scale(1) rotateY(5deg)}
+    28%{transform:translateX(0) translateY(-8px) rotate(-8deg) scale(1.01) rotateY(3deg)}
+    32%{transform:translateX(0) translateY(-6px) rotate(-10deg) scale(1.01) rotateY(2deg)}
+    38%{transform:translateX(1%) translateY(-14px) rotate(3deg) scale(1.02) rotateY(-5deg)}
+    42%{transform:translateX(2%) translateY(-10px) rotate(8deg) scale(1.03) rotateY(-10deg)}
+    46%{transform:translateX(2%) translateY(-6px) rotate(10deg) scale(1.02) rotateY(-6deg)}
+    52%{transform:translateX(1%) translateY(-4px) rotate(6deg) scale(1.01) rotateY(-3deg)}
+    60%{transform:translateX(0) translateY(-2px) rotate(3deg) scale(1) rotateY(-1deg)}
+    70%{transform:translateX(0) translateY(-1px) rotate(1deg) scale(1) rotateY(0deg)}
+    82%{transform:translateX(0) translateY(0) rotate(-0.5deg) scale(1) rotateY(0deg)}
+    100%{transform:translateX(0) translateY(0) rotate(0) scale(1) rotateY(0deg)}
+}
+.kicker-3d.kicking .kicker-shadow{animation:kickShadow3D 1.1s ease}
+@keyframes kickShadow3D{0%,100%{transform:translateX(-50%) scaleX(1)}40%{transform:translateX(-40%) scaleX(0.7)}}
+/* Celebrate with 3D twist */
+.kicker-3d.celebrating .kicker-figure{animation:cel3D 2.2s ease}
+@keyframes cel3D{
+    0%{transform:translateY(0) scale(1) rotate(0) rotateY(0deg)}
+    5%{transform:translateY(-10px) scale(1.02) rotate(0) rotateY(10deg)}
+    10%{transform:translateY(-35px) scale(1.08) rotate(3deg) rotateY(-20deg)}
+    16%{transform:translateY(-42px) scale(1.1) rotate(5deg) rotateY(15deg)}
+    22%{transform:translateY(-20px) scale(1.03) rotate(0) rotateY(-10deg)}
+    28%{transform:translateY(-5px) scale(1) rotate(-2deg) rotateY(5deg)}
+    34%{transform:translateY(-28px) scale(1.06) rotate(2deg) rotateY(-12deg)}
+    40%{transform:translateY(-32px) scale(1.07) rotate(4deg) rotateY(8deg)}
+    48%{transform:translateY(-12px) scale(1.02) rotate(0) rotateY(-5deg)}
+    54%{transform:translateY(-3px) scale(1) rotate(-1deg) rotateY(3deg)}
+    62%{transform:translateY(-18px) scale(1.04) rotate(1deg) rotateY(-3deg)}
+    70%{transform:translateY(-6px) scale(1.01) rotate(0) rotateY(0deg)}
+    80%{transform:translateY(-8px) scale(1.02) rotate(0.5deg) rotateY(0deg)}
+    90%{transform:translateY(-2px) scale(1) rotate(0) rotateY(0deg)}
+    100%{transform:translateY(0) scale(1) rotate(0) rotateY(0deg)}
+}
+
+/* ============ OVERLAY TEXTS ============ */
+.scene-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:20;pointer-events:none;opacity:0;font-family:Impact,'Arial Black',sans-serif;font-weight:900;letter-spacing:4px;text-transform:uppercase}
+.goal-text{font-size:clamp(2em,8vw,5em);color:#FFD700;text-shadow:0 2px 0 #CC8400,0 4px 0 #AA7000,0 6px 0 #886000,0 8px 20px rgba(0,0,0,0.5),0 0 30px rgba(255,215,0,0.4)}
+.miss-text{font-size:clamp(2em,8vw,5em);color:#e74c3c;text-shadow:0 2px 0 #b03a2e,0 4px 0 #922b21,0 6px 0 #7b241c,0 8px 20px rgba(0,0,0,0.5)}
+.saved-text{font-size:clamp(1.8em,7vw,4em);color:#3498db;text-shadow:0 2px 0 #2471a3,0 4px 0 #1a5276,0 6px 20px rgba(0,0,0,0.5)}
+.scene-text.show{animation:textPop 1.4s ease forwards}
+@keyframes textPop{0%{transform:translate(-50%,-50%) scale(0) rotate(-8deg);opacity:0}15%{transform:translate(-50%,-50%) scale(1.3) rotate(3deg);opacity:1}35%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}75%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(.6);opacity:0}}
+.siuu-text{position:absolute;top:30%;left:30%;transform:translate(-50%,-50%) scale(0);font-size:clamp(1.5em,5vw,3em);font-family:Impact,'Arial Black',sans-serif;font-weight:900;color:#fff;text-shadow:0 0 15px rgba(255,215,0,0.8),0 0 30px rgba(255,215,0,0.4),0 2px 0 #CC8400;z-index:22;pointer-events:none;opacity:0;letter-spacing:5px}
+.siuu-text.show{animation:siuuPop 1.5s ease forwards}
+@keyframes siuuPop{0%{transform:translate(-50%,-50%) scale(0) rotate(-10deg);opacity:0}15%{transform:translate(-50%,-50%) scale(1.4) rotate(5deg);opacity:1}35%{transform:translate(-50%,-80%) scale(1.1);opacity:1}65%{transform:translate(-50%,-100%) scale(1);opacity:1}100%{transform:translate(-50%,-120%) scale(.7);opacity:0}}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(150px) rotate(360deg);opacity:0}}
+
+/* ============ QUESTION AREA ============ */
+.question-area{background:var(--bg-card);border-radius:16px;padding:24px;box-shadow:var(--shadow);margin-bottom:20px;position:relative;overflow:hidden}
+.question-area::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,#2e8b3a,#3da34a,#FFD700)}
+.qa-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.qa-round{background:linear-gradient(135deg,#2e8b3a,#3da34a);color:#fff;font-weight:800;font-size:0.85em;padding:6px 14px;border-radius:20px;white-space:nowrap}
+.qa-timer{margin-left:auto;font-weight:700;font-size:1.3em;color:var(--danger);min-width:50px;text-align:center}
+.qa-timer.warning{animation:timerPulse .5s ease infinite alternate}
+@keyframes timerPulse{from{transform:scale(1)}to{transform:scale(1.15);color:#c0392b}}
+.qa-question{font-size:1.3em;font-weight:700;text-align:center;margin-bottom:20px;line-height:1.5}
+.qa-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qa-choice{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#f8f9fa;border:3px solid #e9ecef;border-radius:12px;cursor:pointer;font-weight:600;font-size:1.05em;transition:all 0.2s}
+.qa-choice:hover{border-color:var(--primary);background:#eef0ff;transform:translateY(-2px);box-shadow:0 4px 12px rgba(108,99,255,0.15)}
+.qa-choice:active{transform:scale(.97)}
+.qa-choice .letter{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;background:var(--primary);color:#fff;border-radius:50%;font-weight:800;font-size:0.9em;flex-shrink:0}
+.qa-choice.correct-flash{border-color:var(--success);background:#eafff0;animation:correctPulse .5s ease}
+.qa-choice.wrong-flash{border-color:var(--danger);background:#fff0f0;animation:wrongShake .5s ease}
+@keyframes correctPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+/* ============ FINAL OVERLAY ============ */
+.final-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center}
+.final-overlay.show{display:flex}
+.final-card{background:#fff;border-radius:20px;padding:36px;text-align:center;max-width:500px;width:92%;animation:modalPop .5s ease;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+@keyframes modalPop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1}}
+.final-trophy{font-size:5em;margin-bottom:8px}
+.final-scoreboard{display:flex;align-items:center;justify-content:center;gap:16px;margin:16px 0;font-size:2.5em;font-weight:900}
+.final-scoreboard .ps{color:var(--success)}.final-scoreboard .gs{color:var(--danger)}.final-scoreboard .vs{color:#666;font-size:.6em}
+.final-message{font-size:1.25em;font-weight:700;margin-bottom:16px;color:var(--text)}
+.final-stars{font-size:2em;margin-bottom:18px}
+.final-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.final-actions .btn{padding:12px 24px;border-radius:12px;font-weight:700;font-size:1em;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s}
+.final-actions .btn:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,0,0,0.2)}
+.final-actions .btn-play{background:var(--success);color:#fff}
+.final-actions .btn-back{background:#f0f0f0;color:var(--text)}
+
+.whistle-ov{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:none;align-items:center;justify-content:center;font-size:4em;color:#fff;font-weight:900}
+.whistle-ov.show{display:flex;animation:whistleFade 1.5s ease forwards}
+@keyframes whistleFade{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
+
+@media(max-width:600px){
+.scene{aspect-ratio:4/3}
+.qa-choices{grid-template-columns:1fr}
+.kicker-3d{width:80px;height:120px}
+.gk-3d{width:54px;height:80px}
+.gk-3d .gk-shadow{width:44px;height:7px}
+.ball-3d img{width:14px;height:14px}
+.goal-3d{width:56%;height:16%}
+.score-panel{flex-direction:column}
+.sp-team{padding:6px 10px;font-size:.8em}
+.final-card{padding:20px}.final-scoreboard{font-size:1.8em}
+.ps-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+.aim-target{width:40px;height:40px}
+.aim-target svg{width:40px;height:40px}
+.ps-avatar{width:56px;height:70px}
+.vs-fig{width:90px;height:110px}
+.fk-wall img{height:90px}
+}
+
+/* ============ FILL-IN INPUT (football game) ============ */
+.qa-fill-wrapper{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.qa-fill-input{flex:1;min-width:200px;max-width:400px;padding:14px 18px;font-size:1.2em;font-weight:700;border:3px solid #e9ecef;border-radius:12px;text-align:center;outline:none;transition:border-color .2s,box-shadow .2s;background:#f8f9fa}
+.qa-fill-input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(108,99,255,0.15)}
+.qa-fill-input.fill-correct{border-color:#2ecc71;background:#eafff0;color:#27ae60}
+.qa-fill-input.fill-wrong{border-color:#e74c3c;background:#fff0f0;color:#c0392b}
+.qa-fill-submit{padding:14px 24px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:1.05em;cursor:pointer;transition:transform .2s,box-shadow .2s;white-space:nowrap}
+.qa-fill-submit:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(108,99,255,0.3)}
+.qa-fill-submit:active{transform:scale(.96)}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- PLAYER SELECT -->
+<div class="ps-overlay" id="playerSelect">
+<div class="ps-card">
+<div class="ps-title">⚽ Chọn cầu thủ của bạn</div>
+<div class="ps-subtitle">Chọn 1 ngôi sao để đá phạt!</div>
+<div class="ps-grid" id="psGrid"></div>
+<button class="ps-start" id="psStart" onclick="startGame()">🏟️ Bắt đầu trận đấu!</button>
+</div>
+</div>
+
+<!-- VS INTRO -->
+<div class="vs-overlay" id="vsOverlay">
+<div class="vs-row">
+<div class="vs-side left" id="vsLeft"></div>
+<div class="vs-text">⚡ VS ⚡</div>
+<div class="vs-side right" id="vsRight"></div>
+</div>
+</div>
+
+<div class="breadcrumb">
+<a href="{{ url_for('index') }}">🏠 Trang chủ</a><span>›</span>
+<a href="{{ url_for('subject', subject_id=subject_id) }}">{{ subject.icon }} {{ subject.name }}</a><span>›</span>
+<span>⚽ Đá Phạt - {{ topic.name }}</span>
+</div>
+
+<div class="football-game" id="gameArea" style="display:none">
+
+<div class="score-panel">
+<div class="sp-team sp-left">
+<span class="sp-name" id="spPlayerName">Player</span>
+<span class="sp-dots" id="spPlayerDots"></span>
+<span class="sp-score" id="spPlayerScore">0</span>
+</div>
+<div class="sp-team sp-right">
+<span class="sp-name">THỦ MÔN</span>
+<span class="sp-dots" id="spGkDots"></span>
+<span class="sp-score" id="spGkScore">0</span>
+</div>
+</div>
+
+<div class="scene" id="scene">
+<div class="sky"></div>
+<div class="sky-glow"></div>
+
+<div class="goal-3d" id="goal3d">
+<div class="goal-crossbar"></div>
+<div class="goal-post left"></div>
+<div class="goal-post right"></div>
+<div class="goal-net" id="goalNet"></div>
+</div>
+<div class="pitch-3d">
+<div class="pitch-ground"></div>
+<div class="pitch-shimmer"></div>
+<div class="pitch-shadow"></div>
+<div class="field-line-goal"></div>
+<div class="field-line-6yard"></div>
+<div class="field-line-penalty"></div>
+<div class="penalty-spot"></div>
+<div class="penalty-arc"></div>
+<div class="center-circle-arc"></div>
+<div class="halfway-line"></div>
+<div class="corner-flag left-flag"></div>
+<div class="corner-flag right-flag"></div>
+</div>
+<div class="gk-3d" id="gk3d"></div>
+<div class="fk-wall" id="fkWall"></div>
+<div class="ball-3d" id="ball3d"><img src="/static/players/quabong.png" alt="ball"><div class="ball-shadow"></div></div>
+<div class="kicker-3d" id="kicker3d"></div>
+<div class="fk-pos-label" id="fkPosLabel"></div>
+<!-- Aim zone (full scene click overlay) -->
+<div class="aim-zone" id="aimZone"></div>
+<svg class="aim-arrow" id="aimArrow" viewBox="0 0 100 100" preserveAspectRatio="none">
+<defs><marker id="arrHead" markerWidth="8" markerHeight="5" refX="8" refY="2.5" orient="auto"><polygon points="0 0,8 2.5,0 5" fill="rgba(255,255,255,0.9)"/></marker></defs>
+<path id="aimArrowPath" d="M 50 80 Q 50 55 50 30" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="0.6" stroke-dasharray="2,1.5" marker-end="url(#arrHead)"/>
+</svg>
+<div class="aim-target" id="aimTarget"></div>
+<div class="aim-instruction" id="aimInstruct">🎯 Nhấp chuột để sút!</div>
+<div class="scene-text goal-text" id="goalText">GOOOAL!</div>
+<div class="scene-text miss-text" id="missText">MISS!</div>
+<div class="scene-text saved-text" id="savedText">SAVED!</div>
+<div class="siuu-text" id="siuuText">SIUUUU!</div>
+</div>
+
+<div class="question-area" id="questionArea">
+<div class="qa-header">
+<div class="qa-round" id="qaRound">⚽ Lượt 1</div>
+<div class="qa-timer" id="qaTimer">⏱️ 30</div>
+</div>
+<div class="qa-question" id="qaQuestion"></div>
+<div class="qa-choices" id="qaChoices"></div>
+</div>
+</div>
+
+<div class="whistle-ov" id="whistleOv"><div>🏁 Hết giờ!</div></div>
+
+<div class="final-overlay" id="finalOverlay">
+<div class="final-card">
+<div class="final-trophy" id="finalTrophy">🏆</div>
+<div class="final-scoreboard">
+<span class="ps" id="finalPS">0</span>
+<span class="vs">-</span>
+<span class="gs" id="finalGS">0</span>
+</div>
+<div class="final-message" id="finalMsg"></div>
+<div class="final-stars" id="finalStars"></div>
+<div class="final-actions">
+<a href="{{ url_for('football_game', subject_id=subject_id, topic_id=topic_id) }}" class="btn btn-play">🔄 Đá lại</a>
+<a href="{{ url_for('subject', subject_id=subject_id) }}" class="btn btn-back">📋 Chọn bài khác</a>
+<a href="{{ url_for('index') }}" class="btn btn-back">🏠 Trang chủ</a>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+
+/* ================================================================
+   REALISTIC SVG BUILDERS
+   ================================================================ */
+
+const KICKER_IMG_URL = '/static/images/footballer.png';
+
+// KICKER - Back view (image-based, per-player)
+function kickerBackSVG(p) {
+    const playerImg = `/static/players/${p.id}.png`;
+    return `<div class="kicker-figure">
+        <img class="kicker-img" src="${playerImg}" alt="${p.name}"
+            onerror="this.onerror=null;this.src='${KICKER_IMG_URL}';">
+        <div class="kicker-shadow"></div>
+    </div>`;
+}
+
+// KICKER - Front view (for player select card) - full body transparent PNG
+function kickerFrontSVG(p) {
+    return `<img src="/static/players/${p.id}.png" alt="${p.name}" onerror="this.onerror=null;this.src='${KICKER_IMG_URL}'">`;
+}
+
+// GOALKEEPER - Image-based 3D (uses custom image from /static/images/goalkeeper/)
+const GK_IMG_URL = '/static/images/goalkeeper.png';
+
+function gkSVG() {
+    // Returns HTML with image + fallback SVG overlay for when no image exists
+    return `<div class="gk-figure">
+        <img class="gk-img" src="${GK_IMG_URL}" alt="Thủ môn"
+            onerror="this.onerror=null;this.src='/static/images/goalkeeper/default.svg';this.classList.add('gk-fallback')">
+        <div class="gk-shadow"></div>
+    </div>`;
+}
+
+// Ball image
+function ballIMG() {
+    return `<img src="/static/players/quabong.png" alt="ball">`;
+}
+
+// Aim crosshair SVG
+function aimSVG() {
+    return `<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="25" cy="25" r="22" stroke="#FF0000" stroke-width="2.5" fill="rgba(255,0,0,0.08)"/>
+    <circle cx="25" cy="25" r="14" stroke="#FFD700" stroke-width="2" fill="rgba(255,215,0,0.08)"/>
+    <circle cx="25" cy="25" r="7" stroke="#FF0000" stroke-width="1.5" fill="rgba(255,0,0,0.12)"/>
+    <circle cx="25" cy="25" r="2.5" fill="#FF0000"/>
+    </svg>`;
+}
+
+// Utility: shade a hex color
+function shadeColor(color, percent) {
+    if (!color || color.charAt(0) !== '#') return color;
+    let num = parseInt(color.slice(1), 16);
+    let r = Math.min(255, Math.max(0, (num >> 16) + percent));
+    let g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + percent));
+    let b = Math.min(255, Math.max(0, (num & 0x0000FF) + percent));
+    return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+/* ================================================================
+   PLAYERS DATA
+   ================================================================ */
+const PLAYERS = [
+    {id:'ronaldo',   name:'C. Ronaldo',     backName:'RONALDO',    club:'Al Nassr',        country:'🇵🇹',  role:'Huyền thoại số 7',       jersey:'#FFF200', shorts:'#FFF200', num:7,  hair:'#3B2F2F', skin:'#FDBCB4', skinDark:'#D9A09A'},
+    {id:'neymar',    name:'Neymar Jr.',     backName:'NEYMAR JR',  club:'Santos',          country:'🇧🇷',  role:'Nghệ sĩ samba',        jersey:'#fff',    shorts:'#000',    num:10, hair:'#1a1a1a', skin:'#C68642', skinDark:'#A0682E'},
+    {id:'dinhbac',   name:'N.Đ. Bắc',       backName:'ĐÌNH BẮC',   club:'ĐT Việt Nam',      country:'🇻🇳',  role:'Ngôi sao Việt Nam',     jersey:'#DA291C', shorts:'#DA291C', num:18, hair:'#1a1a1a', skin:'#F1C27D', skinDark:'#D4A76A'},
+    {id:'yamal',     name:'L. Yamal',       backName:'YAMAL',      club:'Barcelona',       country:'🇪🇸',  role:'Tài năng trẻ xuất sắc',jersey:'#A50044', shorts:'#004D98', num:19, hair:'#1a1a1a', skin:'#C68642', skinDark:'#A0682E'},
+    {id:'haaland',   name:'E. Haaland',     backName:'HAALAND',    club:'Man City',        country:'🇳🇴',  role:'Máy ghi bàn chủ lực',  jersey:'#6CABDD', shorts:'#1C2C5B', num:9,  hair:'#F5DEB3', skin:'#FDBCB4', skinDark:'#D9A09A'},
+    {id:'mbappe',    name:'K. Mbappé',     backName:'MBAPPÉ',     club:'Real Madrid',     country:'🇫🇷',  role:'Tiền đạo hàng đầu TG', jersey:'#fff',    shorts:'#00237A', num:9,  hair:'#1a1a1a', skin:'#C68642', skinDark:'#A0682E'},
+];
+
+let selectedPlayer = null;
+
+/* ================================================================
+   FREE KICK POSITIONS (random each round)
+   ================================================================ */
+const KICK_POSITIONS = [
+    {name:'Chính giữa ~20m', kL:50, kB:1,  bL:50, bT:80, wL:50, wT:50, wN:4},
+    {name:'Chính giữa ~17m', kL:50, kB:5,  bL:50, bT:76, wL:50, wT:46, wN:5},
+    {name:'Lệch trái ~18m',  kL:32, kB:3,  bL:34, bT:78, wL:40, wT:48, wN:4},
+    {name:'Lệch phải ~18m',  kL:68, kB:3,  bL:66, bT:78, wL:60, wT:48, wN:4},
+    {name:'Trái xa ~22m',    kL:24, kB:0,  bL:26, bT:82, wL:34, wT:52, wN:3},
+    {name:'Phải xa ~22m',    kL:76, kB:0,  bL:74, bT:82, wL:66, wT:52, wN:3},
+    {name:'Chính giữa ~25m', kL:50, kB:0,  bL:50, bT:86, wL:50, wT:54, wN:5},
+];
+let curKickPos = KICK_POSITIONS[0];
+
+function randomKickPosition(){
+    const pickedPos = KICK_POSITIONS[Math.floor(Math.random()*KICK_POSITIONS.length)];
+    // Keep ball directly under the kicker for all free-kick presets.
+    curKickPos = {...pickedPos, bL:pickedPos.kL};
+    // Position kicker
+    const k=G('kicker3d');
+    k.style.left=curKickPos.kL+'%';
+    k.style.bottom=curKickPos.kB+'%';
+    k.style.transform='translateX(-50%)';
+    // Position ball
+    const b=G('ball3d');
+    b.style.left=curKickPos.bL+'%';
+    b.style.top=curKickPos.bT+'%';
+    // Build & position wall
+    buildWall(curKickPos.wL, curKickPos.wT, curKickPos.wN);
+    // Show position label
+    G('fkPosLabel').textContent='📍 '+curKickPos.name;
+}
+
+function buildWall(leftPct, topPct, count){
+    const w=G('fkWall');
+    w.style.left=leftPct+'%';
+    w.style.top=topPct+'%';
+    w.innerHTML=`<img src="/static/players/hangrao.png" alt="wall">`;
+    w.classList.add('active');
+}
+
+/* ================================================================
+   PLAYER SELECT
+   ================================================================ */
+const psGrid = document.getElementById('psGrid');
+PLAYERS.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'ps-player';
+    el.innerHTML = `
+        <div class="ps-avatar">
+            <img src="/static/players/${p.id}.png" alt="${p.name}">
+        </div>
+        <div class="ps-name">${p.country} ${p.name}</div>
+        <div class="ps-club">${p.club}</div>
+        <div class="ps-role">${p.role}</div>`;
+    el.addEventListener('click', () => {
+        selectedPlayer = p;
+        document.querySelectorAll('.ps-player').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('psStart').classList.add('ready');
+        SFX.select();
+    });
+    psGrid.appendChild(el);
+});
+
+/* ================================================================
+   CROWD CANVAS
+   ================================================================ */
+function drawCrowd() {
+    const canvas = document.getElementById('crowdCanvas');
+    if (!canvas) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const w = rect.width, h = rect.height;
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fillRect(0, 0, w, h);
+    const shirts = ['#e74c3c','#3498db','#f1c40f','#2ecc71','#e67e22','#9b59b6','#1abc9c','#fff','#34495e','#FF69B4','#00BCD4'];
+    const skins = ['#FDBCB4','#C68642','#8D5524','#FDBF60','#D4A76A','#F1C27D'];
+    const hairs = ['#1a1a1a','#3B2F2F','#8B4513','#D4A76A','#F5DEB3'];
+    for (let r = 0; r < 8; r++) {
+        const y = r * h/8, sp = 7+r*0.3, hs = 3+r*0.4, bh = 4+r*0.5;
+        for (let i = 0; i < Math.floor(w/sp); i++) {
+            const x = i*sp+(r%2?sp/2:0)+Math.random()*2, by = y+h/8-bh-hs;
+            ctx.fillStyle = shirts[Math.floor(Math.random()*shirts.length)];
+            ctx.fillRect(x-hs*0.6, by+hs, hs*1.2, bh);
+            ctx.fillStyle = skins[Math.floor(Math.random()*skins.length)];
+            ctx.beginPath(); ctx.arc(x, by+hs*0.5, hs, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = hairs[Math.floor(Math.random()*5)];
+            ctx.beginPath(); ctx.arc(x, by+hs*0.2, hs, Math.PI, Math.PI*2); ctx.fill();
+        }
+    }
+}
+
+/* ================================================================
+   START GAME
+   ================================================================ */
+window.startGame = function() {
+    if (!selectedPlayer) return;
+    const p = selectedPlayer;
+    document.getElementById('playerSelect').style.display = 'none';
+    const vs = document.getElementById('vsOverlay');
+    vs.classList.add('show');
+    document.getElementById('vsLeft').innerHTML = `<div class="vs-fig"><img src="/static/players/${p.id}.png" alt="${p.name}" onerror="this.onerror=null;this.src='${KICKER_IMG_URL}'"></div><div class="vs-name">${p.name}</div>`;
+    document.getElementById('vsRight').innerHTML = `<div class="vs-fig"><img src="${GK_IMG_URL}" alt="Thủ môn" onerror="this.style.display='none'"></div><div class="vs-name">Thủ môn</div>`;
+    document.getElementById('spPlayerName').textContent = p.backName;
+    document.getElementById('kicker3d').innerHTML = kickerBackSVG(p);
+    document.getElementById('gk3d').innerHTML = gkSVG();
+    document.getElementById('gk3d').classList.add('ready');
+    // Ball image already in HTML
+    document.getElementById('aimTarget').innerHTML = aimSVG();
+    initDots();
+    SFX.whistle();
+    setTimeout(() => {
+        vs.classList.remove('show'); vs.style.display = 'none';
+        document.getElementById('gameArea').style.display = 'block';
+        showQuestion();
+    }, 2500);
+};
+
+/* ================================================================
+   GAME STATE
+   ================================================================ */
+const questions = {{ questions|tojson }};
+const totalRounds = questions.length;
+let currentRound = 0, playerScore = 0, gkScore = 0;
+let isAnimating = false, timerInterval = null, timeLeft = 30;
+let aimActive = false, aimAnimId = null;
+const G = id => document.getElementById(id);
+
+function initDots() {
+    let ph='', gh='';
+    for(let i=0;i<totalRounds;i++){ph+='<span class="sp-dot" id="pd'+i+'"></span>';gh+='<span class="sp-dot" id="gd'+i+'"></span>';}
+    G('spPlayerDots').innerHTML=ph;
+    G('spGkDots').innerHTML=gh;
+}
+function updateDots(round, isGoal) {
+    const pd=G('pd'+round), gd=G('gd'+round);
+    if(pd) pd.className='sp-dot '+(isGoal?'goal':'miss');
+    if(gd) gd.className='sp-dot '+(isGoal?'miss':'goal');
+}
+
+/* ================================================================
+   SOUND FX
+   ================================================================ */
+const SFX={
+    ctx:null,
+    applauseAudio:null,siuuuAudio:null,oooAudio:null,
+    init(){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){} this.applauseAudio=new Audio('/static/sounds/applause.mp3');this.applauseAudio.volume=0.7;this.siuuuAudio=new Audio('/static/sounds/siuuu.mp3');this.siuuuAudio.volume=0.8;this.oooAudio=new Audio('/static/sounds/ooo.mp3');this.oooAudio.volume=0.7;},
+    resume(){if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume()},
+    _tone(f,d,t,v){if(!this.ctx)return;this.resume();const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.12,this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+d);o.start();o.stop(this.ctx.currentTime+d)},
+    select(){this._tone(800,.1,'sine',.12)},
+    whistle(){if(!this.ctx)return;this.resume();const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type='sine';o.frequency.setValueAtTime(900,t);o.frequency.linearRampToValueAtTime(1200,t+.1);o.frequency.linearRampToValueAtTime(900,t+.3);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.start(t);o.stop(t+.4)},
+    kick(){if(!this.ctx)return;this.resume();const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type='triangle';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(40,t+.25);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.start(t);o.stop(t+.3)},
+    clapping(){try{this.applauseAudio.currentTime=0;this.applauseAudio.play();}catch(e){}},
+    stopClapping(){try{this.applauseAudio.pause();this.applauseAudio.currentTime=0;}catch(e){}},
+    siuuu(){try{this.siuuuAudio.currentTime=0;this.siuuuAudio.play();}catch(e){}},
+    stopSiuuu(){try{this.siuuuAudio.pause();this.siuuuAudio.currentTime=0;}catch(e){}},
+    saveBuzz(){try{this.oooAudio.currentTime=0;this.oooAudio.play();}catch(e){}},
+    stopOoo(){try{this.oooAudio.pause();this.oooAudio.currentTime=0;}catch(e){}},
+    finalWhistle(){if(!this.ctx)return;this.resume();[0,.25,.5].forEach(d=>{const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.connect(g);g.connect(this.ctx.destination);o.type='sine';const t=this.ctx.currentTime+d;o.frequency.setValueAtTime(1000,t);o.frequency.linearRampToValueAtTime(1300,t+.15);g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.start(t);o.stop(t+.2)})},
+    celebrateGoal(){this.clapping();this.siuuu();},
+    wrongBuzz(){this._tone(150,.3,'sawtooth',.15)}
+};
+SFX.init();
+document.addEventListener('click',()=>SFX.resume(),{once:true});
+
+/* ================================================================
+   TIMER
+   ================================================================ */
+function startTimer(){
+    timeLeft=30;G('qaTimer').textContent='⏱️ 30';G('qaTimer').classList.remove('warning');
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{timeLeft--;G('qaTimer').textContent='⏱️ '+timeLeft;if(timeLeft<=5)G('qaTimer').classList.add('warning');if(timeLeft<=0){clearInterval(timerInterval);handleAnswer(null)}},1000);
+}
+function stopTimer(){clearInterval(timerInterval)}
+
+/* ================================================================
+   SHOW QUESTION - Phase 1: Answer question
+   ================================================================ */
+function showQuestion(){
+    if(currentRound>=totalRounds){endGame();return;}
+    const q=questions[currentRound];
+    G('qaRound').textContent='⚽ Lượt '+(currentRound+1);
+    G('qaQuestion').innerHTML=q.question;
+    let html='';
+    if(q.type === 'fill') {
+        html=`<div class="qa-fill-wrapper">
+            <input type="text" class="qa-fill-input" id="qaFillInput" placeholder="${q.hint || 'Nhập đáp án từ bàn phím...'}" autocomplete="off" autofocus>
+            <button class="qa-fill-submit" onclick="window._submitFill()">🔍 Kiểm tra</button>
+        </div>`;
+        G('qaChoices').innerHTML=html;
+        setTimeout(()=>{
+            const inp=G('qaFillInput');
+            if(inp){inp.focus();inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();window._submitFill();}});}
+        },100);
+    } else {
+        let L=['A','B','C','D'];
+        q.choices.forEach((c,i)=>{
+            html+=`<div class="qa-choice" data-value="${c.replace(/"/g,'&quot;')}" onclick="window._sel(this)"><span class="letter">${L[i]}</span><span>${c}</span></div>`;
+        });
+        G('qaChoices').innerHTML=html;
+    }
+    resetScene();
+    randomKickPosition();
+    startTimer();
+}
+
+function resetScene(){
+    G('ball3d').className='ball-3d';
+    G('ball3d').style.cssText='';
+    G('gk3d').className='gk-3d ready';
+    G('goalText').className='scene-text goal-text';
+    G('missText').className='scene-text miss-text';
+    G('savedText').className='scene-text saved-text';
+    G('siuuText').className='siuu-text';
+    G('goalNet').className='goal-net';
+    G('kicker3d').className='kicker-3d idle';
+    G('scene').classList.remove('aiming');
+    G('scene').classList.remove('goal-shake');
+    G('aimZone').classList.remove('active');
+    G('aimTarget').classList.remove('active');
+    G('aimInstruct').classList.remove('active');
+    G('aimArrow').classList.remove('active');
+    if(aimAnimId){cancelAnimationFrame(aimAnimId);aimAnimId=null;}
+    // Remove any leftover grass particles
+    G('scene').querySelectorAll('.grass-particle').forEach(p=>p.remove());
+    // Reset free kick wall
+    G('fkWall').classList.remove('active','fk-wall-jump');
+    G('fkPosLabel').textContent='';
+    aimActive=false;
+}
+
+window._sel=function(el){
+    if(isAnimating)return;SFX.select();stopTimer();
+    handleAnswer(el.dataset.value,el);
+};
+
+window._submitFill=function(){
+    if(isAnimating)return;
+    const inp=G('qaFillInput');
+    if(!inp)return;
+    const val=inp.value.trim();
+    if(!val)return;
+    SFX.select();stopTimer();
+    inp.disabled=true;
+    const q=questions[currentRound];
+    const correct=(val.toLowerCase()===q.answer.toLowerCase());
+    if(correct){inp.classList.add('fill-correct');}
+    else{inp.classList.add('fill-wrong');}
+    handleAnswer(correct?q.answer:val,null);
+};
+
+/* ================================================================
+   HANDLE ANSWER
+   Correct → Phase 2: Aiming mode (click to shoot)
+   Wrong → MISS (no shot, skip to next round)
+   ================================================================ */
+function handleAnswer(value,el){
+    if(isAnimating)return;isAnimating=true;stopTimer();
+    const q=questions[currentRound];
+    const correct=q.type==='fill'
+        ?(value.toString().trim().toLowerCase()===q.answer.toString().trim().toLowerCase())
+        :(value===q.answer);
+    document.querySelectorAll('.qa-choice').forEach(c=>c.style.pointerEvents='none');
+    if(el){
+        el.classList.add(correct?'correct-flash':'wrong-flash');
+        if(!correct)document.querySelectorAll('.qa-choice').forEach(c=>{if(c.dataset.value===q.answer)c.classList.add('correct-flash')});
+    } else if(q.type!=='fill') {
+        document.querySelectorAll('.qa-choice').forEach(c=>{if(c.dataset.value===q.answer)c.classList.add('correct-flash')});
+    }
+    // For fill-in, show correct answer if wrong
+    if(q.type==='fill'&&!correct){
+        const inp=G('qaFillInput');
+        if(inp){
+            const hint=document.createElement('div');
+            hint.style.cssText='color:#2ecc71;font-weight:700;text-align:center;margin-top:8px;font-size:1.1em;';
+            hint.textContent='\u2705 \u0110\u00e1p \u00e1n: '+q.answer;
+            inp.parentElement.appendChild(hint);
+        }
+    }
+
+    if(correct){
+        // Correct! Enter aiming phase
+        setTimeout(()=>{startAiming()},700);
+    } else {
+        // Wrong - no shot, count as MISS
+        SFX.wrongBuzz();
+        setTimeout(()=>{
+            G('missText').classList.add('show');
+            updateDots(currentRound, false);
+            gkScore++;
+            G('spGkScore').textContent=gkScore;
+            // GK celebrates
+            G('gk3d').classList.add('celebrate');
+        },700);
+        setTimeout(()=>{currentRound++;isAnimating=false;showQuestion()},2500);
+    }
+}
+
+/* ================================================================
+   AIMING PHASE - target auto-oscillates, click to shoot
+   ================================================================ */
+function startAiming(){
+    aimActive=true;
+    G('scene').classList.add('aiming');
+    G('aimZone').classList.add('active');
+    G('aimTarget').classList.add('active');
+    G('aimInstruct').classList.add('active');
+    G('aimArrow').classList.add('active');
+
+    const zone = G('aimZone');
+    const target = G('aimTarget');
+    const arrowPath = G('aimArrowPath');
+
+    // Goal bounds in % of scene
+    const gL=26, gR=74, gT=18, gB=34;
+    // Extended bounds: 10% extra on each side for miss zone
+    const extPct=0.10;
+    const extW=(gR-gL)*extPct; // ~4.8% each side
+    const eL=gL-extW, eR=gR+extW;
+    // Ball position in % (from current free kick position)
+    const bL=curKickPos.bL, bT=curKickPos.bT;
+    // Wall position for curve calculation
+    const wL=curKickPos.wL, wT=curKickPos.wT;
+    // Oscillation speeds (radians/sec) - 52% slower than original
+    const spdX=1.344, spdY=0.768;
+    const startT=performance.now();
+    let curAimX=0.5, curAimY=0.5;
+
+    function oscillate(now){
+        if(!aimActive) return;
+        const t=(now-startT)/1000;
+        // Range: -extPct to 1+extPct (goes beyond goal)
+        curAimX=0.5+0.6*Math.sin(t*spdX); // 0.6 amplitude => -0.1 to 1.1
+        curAimY=0.5+0.35*Math.sin(t*spdY+0.7);
+        // Clamp Y within goal, but X can go outside
+        curAimY=Math.max(0,Math.min(1,curAimY));
+        const tL=eL+curAimX*(eR-eL);
+        const tT=gT+curAimY*(gB-gT);
+        target.style.left=tL+'%';
+        target.style.top=tT+'%';
+        // Draw curved path (quadratic bezier) that bends around wall
+        if(arrowPath){
+            // Control point: offset sideways from wall to show curve
+            const midY=(bT+tT)/2;
+            const dx=tL-bL; // horizontal difference
+            // Curve bends opposite to shot direction (like banana kick)
+            const curveBend = dx * 0.4; // proportional to horizontal offset
+            const cpX = (bL+tL)/2 - curveBend;
+            const cpY = Math.min(midY, wT) - 3; // curve rises above wall
+            arrowPath.setAttribute('d',
+                `M ${bL} ${bT} Q ${cpX} ${cpY} ${tL} ${tT}`);
+        }
+        aimAnimId=requestAnimationFrame(oscillate);
+    }
+    aimAnimId=requestAnimationFrame(oscillate);
+
+    function onShoot(){
+        if(!aimActive) return;
+        aimActive=false;
+        cancelAnimationFrame(aimAnimId);aimAnimId=null;
+        zone.removeEventListener('click',onShoot);
+        zone.removeEventListener('touchend',onShoot);
+        G('scene').classList.remove('aiming');
+        G('aimZone').classList.remove('active');
+        G('aimTarget').classList.remove('active');
+        G('aimInstruct').classList.remove('active');
+        G('aimArrow').classList.remove('active');
+        executeShot(curAimX, curAimY);
+    }
+    zone.addEventListener('click',onShoot);
+    zone.addEventListener('touchend',onShoot);
+}
+
+/* ================================================================
+   EXECUTE SHOT - ball flies to aim point, GK dives randomly
+   ================================================================ */
+/* ---- Grass/dust particles burst on kick ---- */
+function spawnGrassParticles(){
+    const scene=G('scene');
+    const colors=['#3da34a','#2e8b3a','#5cb85c','#8B6914','#6B8E23'];
+    const grassLeft=curKickPos.bL, grassBottom=(100-curKickPos.bT);
+    for(let i=0;i<18;i++){
+        const p=document.createElement('div');
+        p.className='grass-particle';
+        const angle=Math.random()*Math.PI-Math.PI/2;
+        const dist=25+Math.random()*45;
+        const gx=Math.cos(angle)*dist*(Math.random()>.5?1:-1);
+        const gy=-Math.abs(Math.sin(angle)*dist)-Math.random()*20;
+        const gr=Math.random()*360;
+        const dur=0.4+Math.random()*0.4;
+        p.style.cssText=`left:${grassLeft}%;bottom:${grassBottom}%;width:${2+Math.random()*4}px;height:${1+Math.random()*2}px;background:${colors[Math.floor(Math.random()*colors.length)]};--gx:${gx}px;--gy:${gy}px;--gr:${gr}deg;--gDur:${dur}s`;
+        scene.appendChild(p);
+        requestAnimationFrame(()=>p.classList.add('fly'));
+        setTimeout(()=>p.remove(),dur*1000+100);
+    }
+}
+
+/* ---- Smooth JS ball flight animation with curve ---- */
+function animateBall(targetLeftPct, targetTopPct, targetScale, duration){
+    const ball=G('ball3d');
+    ball.classList.add('flying');
+    const sL=curKickPos.bL, sT=curKickPos.bT, startScale=1;
+    const wL=curKickPos.wL, wT=curKickPos.wT;
+    // Quadratic bezier control point (same curve as aiming line)
+    const dx=targetLeftPct-sL;
+    const curveBend=dx*0.4;
+    const cpX=(sL+targetLeftPct)/2 - curveBend;
+    const cpY=Math.min((sT+targetTopPct)/2, wT) - 3;
+    const startTime=performance.now();
+    function easeOutCubic(t){return 1-Math.pow(1-t,3);}
+    function frame(now){
+        let t=(now-startTime)/duration;
+        if(t>1) t=1;
+        const e=easeOutCubic(t);
+        // Quadratic bezier: B(t) = (1-t)^2*P0 + 2(1-t)*t*CP + t^2*P1
+        const u=1-e;
+        const curLeft = u*u*sL + 2*u*e*cpX + e*e*targetLeftPct;
+        const curTop  = u*u*sT + 2*u*e*cpY + e*e*targetTopPct;
+        const curScale=startScale+(targetScale-startScale)*e;
+        // Extra vertical arc for loft
+        const arc=-Math.sin(t*Math.PI)*6*(1-targetScale);
+        const spin=t*720;
+        ball.style.left=curLeft+'%';
+        ball.style.top=(curTop+arc)+'%';
+        ball.style.transform=`translate(-50%,-50%) scale(${curScale}) rotate(${spin}deg)`;
+        const shadow=ball.querySelector('.ball-shadow');
+        if(shadow) shadow.style.opacity=Math.max(0,1-t*1.5);
+        if(t<1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+
+function executeShot(aimX, aimY) {
+    // Check if shot goes wide (outside goal bounds)
+    const isMissWide = (aimX < 0 || aimX > 1);
+
+    // Determine shot zone: left/center/right × top/bottom
+    let shotLR, shotTB;
+    if(aimX < 0.35) shotLR = 'left';
+    else if(aimX > 0.65) shotLR = 'right';
+    else shotLR = 'center';
+
+    if(aimY < 0.5) shotTB = 't'; // top half
+    else shotTB = 'b'; // bottom half
+
+    const shotZone = shotTB + shotLR.charAt(0); // tl, tc, tr, bl, bc, br
+
+    // Ball target positions (% of scene) - adjusted for new perspective
+    const targets = {
+        'tl':{left:32,top:22,scale:.28},'tc':{left:50,top:22,scale:.28},'tr':{left:68,top:22,scale:.28},
+        'bl':{left:33,top:30,scale:.32},'bc':{left:50,top:30,scale:.32},'br':{left:67,top:30,scale:.32}
+    };
+    // Miss-wide targets: ball flies past the post
+    const missTargets = {
+        'left': {left:12,top:24,scale:.26},
+        'right':{left:88,top:24,scale:.26}
+    };
+    const target = isMissWide ? missTargets[shotLR]||targets[shotZone] : targets[shotZone];
+
+    // GK AI: pick a random direction to dive
+    const gkChoices = ['left','center','right'];
+    const gkDive = gkChoices[Math.floor(Math.random()*3)];
+
+    // Determine if saved: GK dives same direction as shot (not if miss wide)
+    const isSaved = !isMissWide && (gkDive === shotLR);
+
+    // Remove idle classes
+    G('kicker3d').classList.remove('idle');
+    G('gk3d').classList.remove('ready');
+
+    // Kicker kick animation (approach + wind-up + strike)
+    G('kicker3d').classList.add('kicking');
+
+    // Sound: clapping at strike moment
+    setTimeout(()=>SFX.clapping(),350);
+
+    // Wall jump animation on every shot
+    setTimeout(()=>{ G('fkWall').classList.add('fk-wall-jump'); },300);
+
+    // Check wall block by trajectory intersection at wall depth
+    // A low shot is blocked when its flight path crosses the wall width zone
+    let wallBlocked = false;
+    if(!isMissWide && shotTB === 'b'){
+        const sL = curKickPos.bL;
+        const sT = curKickPos.bT;
+        const eL = target.left;
+        const eT = target.top;
+        const wallY = curKickPos.wT + 3; // wall plane (slightly in front of image center)
+        const den = (eT - sT);
+
+        if(Math.abs(den) > 0.001){
+            const tAtWall = (wallY - sT) / den;
+            if(tAtWall > 0 && tAtWall < 1){
+                const xAtWall = sL + (eL - sL) * tAtWall;
+                const wallHalfWidth = 14; // stronger interception range
+                wallBlocked = Math.abs(xAtWall - curKickPos.wL) <= wallHalfWidth;
+            }
+        }
+    }
+
+    // Ball + GK animation at strike contact (~40% of kick)
+    setTimeout(()=>{
+        spawnGrassParticles();
+        if(isMissWide){
+            // Ball flies wide past the post
+            animateBall(target.left, target.top, target.scale, 650);
+            G('gk3d').classList.add('dive-'+gkDive);
+        } else if(wallBlocked){
+            // Ball hits the wall - deflects away
+            const deflX = curKickPos.wL + (Math.random()*20-10);
+            const deflY = curKickPos.wT + 5;
+            animateBall(deflX, deflY, 0.7, 400);
+            G('gk3d').classList.add('dive-'+gkDive);
+        } else if(isSaved){
+            const deflectClass = 'deflect-'+shotLR;
+            G('ball3d').classList.add(deflectClass);
+            G('gk3d').classList.add('dive-'+gkDive);
+        } else {
+            // Smooth JS ball flight
+            animateBall(target.left, target.top, target.scale, 700);
+            G('gk3d').classList.add('dive-'+gkDive);
+        }
+    },420);
+
+    // Result
+    setTimeout(()=>{
+        if(isMissWide){
+            SFX.wrongBuzz();
+            G('missText').classList.add('show');
+            gkScore++;
+            updateDots(currentRound, false);
+            G('spGkScore').textContent=gkScore;
+        } else if(wallBlocked){
+            SFX.saveBuzz();
+            G('savedText').classList.add('show');
+            gkScore++;
+            updateDots(currentRound, false);
+            G('spGkScore').textContent=gkScore;
+        } else if(isSaved){
+            SFX.saveBuzz();
+            G('savedText').classList.add('show');
+            setTimeout(()=>{
+                G('gk3d').className='gk-3d';
+                void G('gk3d').offsetWidth;
+                G('gk3d').classList.add('celebrate');
+            },500);
+            gkScore++;
+            updateDots(currentRound, false);
+            G('spGkScore').textContent=gkScore;
+        } else {
+            // Camera shake + goal effects
+            G('scene').classList.add('goal-shake');
+            setTimeout(()=>G('scene').classList.remove('goal-shake'),600);
+            SFX.celebrateGoal();
+            G('goalNet').classList.add('shake');
+            G('goalText').classList.add('show');
+            setTimeout(()=>G('siuuText').classList.add('show'),250);
+            G('kicker3d').classList.remove('kicking');
+            G('kicker3d').classList.add('celebrating');
+
+            // Confetti burst
+            const sr=G('scene').getBoundingClientRect();
+            for(let i=0;i<35;i++){
+                const cf=document.createElement('div');
+                cf.style.cssText=`position:fixed;left:${sr.left+Math.random()*sr.width}px;top:${sr.top+Math.random()*sr.height*.6}px;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${['#FFD700','#FF6B6B','#4ECDC4','#fff','#45B7D1','#FF69B4'][Math.floor(Math.random()*6)]};border-radius:${Math.random()>.5?'50%':'2px'};z-index:25;pointer-events:none;animation:confettiFall ${1.5+Math.random()}s ease-out forwards`;
+                document.body.appendChild(cf);setTimeout(()=>cf.remove(),3000);
+            }
+            playerScore++;
+            updateDots(currentRound, true);
+            G('spPlayerScore').textContent=playerScore;
+        }
+    },1150);
+
+    setTimeout(()=>{currentRound++;isAnimating=false;showQuestion()},3600);
+}
+
+/* ================================================================
+   END GAME
+   ================================================================ */
+function endGame(){
+    SFX.finalWhistle();
+    const w=G('whistleOv');w.classList.add('show');
+    setTimeout(()=>{w.classList.remove('show');w.style.display='none';showFinalResult()},1800);
+}
+function showFinalResult(){
+    G('finalPS').textContent=playerScore;
+    G('finalGS').textContent=gkScore;
+    const pct=(playerScore/totalRounds)*100;
+    let trophy,msg;
+    if(pct===100){trophy='🏆';msg='HAT-TRICK HOÀN HẢO! SIUUUU! 🌟';}
+    else if(pct>=80){trophy='🥇';msg='Tuyệt vời! Courtois bất lực! ⚽';}
+    else if(pct>=60){trophy='🥈';msg='Khá lắm! Cố gắng thêm nhé! 💪';}
+    else if(pct>=40){trophy='🥉';msg='Courtois quá mạnh! Luyện thêm nha! 📖';}
+    else{trophy='😊';msg='Courtois thắng rồi! Thử lại nhé! 🌈';}
+    G('finalTrophy').textContent=trophy;
+    G('finalMsg').textContent=msg;
+    const sc=Math.round(pct/20);let stars='';
+    for(let i=0;i<5;i++)stars+=i<sc?'⭐':'☆';
+    G('finalStars').textContent=stars;
+    G('finalOverlay').classList.add('show');
+    if(pct>=80){SFX.celebrateGoal();if(typeof createConfetti==='function')createConfetti(60);}
+}
+
+let resizeTimer;
+window.addEventListener('resize',()=>{clearTimeout(resizeTimer);});
+
+})();
+</script>
+{% endblock %}

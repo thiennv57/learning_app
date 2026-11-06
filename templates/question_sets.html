@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Bộ Câu Hỏi{% endblock %}
+
+{% block extra_head %}
+<style>
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .section { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+  .section-title { font-size: 1.3em; font-weight: bold; margin-bottom: 15px; color: #333; }
+  
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1em;
+  }
+  
+  .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+  .btn-primary { background: #007bff; color: white; }
+  .btn-primary:hover { background: #0056b3; }
+  .btn-danger { background: #dc3545; color: white; }
+  .btn-danger:hover { background: #c82333; }
+  .btn-success { background: #28a745; color: white; }
+  .btn-success:hover { background: #218838; }
+  
+  .message { padding: 12px; border-radius: 4px; margin-bottom: 15px; }
+  .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  
+  .question-sets-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+  .question-set-card {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s;
+  }
+  .question-set-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+  
+  .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; color: #333; }
+  .card-meta { font-size: 0.9em; color: #777; margin-bottom: 4px; }
+  .card-actions { margin-top: 12px; display: flex; gap: 8px; }
+  .card-actions a { flex: 1; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-size: 0.9em; }
+  
+  .csv-template {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-family: monospace;
+    font-size: 0.9em;
+    overflow-x: auto;
+  }
+  
+  .help-text { font-size: 0.9em; color: #666; margin-top: 5px; }
+  
+  .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+  .tab { padding: 10px 15px; cursor: pointer; background: none; border: none; font-weight: 600; color: #666; }
+  .tab.active { color: #007bff; border-bottom: 3px solid #007bff; margin-bottom: -2px; }
+  
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>📋 Quản lý Bộ Câu Hỏi</h1>
+  
+  {% if message %}
+    <div class="message {% if 'thành công' in message or 'lỗi' not in message %}success{% else %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endif %}
+  
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('upload')">📤 Upload Bộ Mới</button>
+    <button class="tab" onclick="showTab('list')">📚 Danh Sách Bộ Câu Hỏi</button>
+  </div>
+  
+  <!-- Upload Tab -->
+  <div id="upload" class="tab-content active">
+    <div class="section">
+      <div class="section-title">Tạo Bộ Câu Hỏi Mới</div>
+      
+      <div class="help-text">
+        <strong>Hướng dẫn:</strong>
+        <ul>
+          <li>✅ Mỗi bộ câu hỏi có thể có <strong>bất kỳ số lượng câu nào</strong> (tối thiểu 1 câu)</li>
+          <li>✅ Hỗ trợ các định dạng: <strong>CSV, TXT, DOC, DOCX</strong></li>
+          <li>✅ Cấu trúc câu hỏi:
+            <ul style="margin-top:6px">
+              <li><strong>CSV</strong>: Cột: question, option_a, option_b, option_c, option_d, answer</li>
+              <li><strong>TXT/DOC/DOCX</strong>: Định dạng tự do (xem ví dụ bên dưới)</li>
+            </ul>
+          </li>
+          <li>✅ Đáp án phải là: a, b, c hoặc d (hoặc dùng dấu * đánh dấu câu trả lời đúng)</li>
+        </ul>
+      </div>
+      
+      <div class="csv-template">
+        <strong>📋 Ví dụ CSV:</strong><br>
+question,option_a,option_b,option_c,option_d,answer<br>
+1+1 bằng bao nhiêu?,1,2,3,4,b<br>
+2+2 bằng bao nhiêu?,3,4,5,6,b<br>
+3+3 bằng bao nhiêu?,5,6,7,8,b<br>
+      </div>
+      
+      <div class="csv-template">
+        <strong>📄 Ví dụ TXT/DOC/DOCX:</strong><br>
+Câu 1. 1+1 bằng bao nhiêu?<br>
+A. 1<br>
+B. 2<br>
+*C. 3<br>
+D. 4<br><br>
+Câu 2. 2+2 bằng bao nhiêu?<br>
+A. 3<br>
+*B. 4<br>
+C. 5<br>
+D. 6<br>
+      </div>
+      
+      <form method="POST" action="{{ url_for('upload_question_set') }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>📁 Tên Bộ Câu Hỏi</label>
+          <input type="text" name="set_name" required placeholder="Vd: Toán Kì 1 - Tháng 1">
+          <div class="help-text">Tên để nhận diện bộ câu hỏi này</div>
+        </div>
+        
+        <div class="form-group">
+          <label>📚 Môn Học</label>
+          <select name="subject" required>
+            <option value="">-- Chọn môn --</option>
+            <option value="toan">Toán</option>
+            <option value="tiengnhat">Tiếng Nhật</option>
+            <option value="tiengviet">Tiếng Việt</option>
+            <option value="khoa_hoc">Khoa Học</option>
+            <option value="vat_ly">Vật Lý</option>
+            <option value="hoa_hoc">Hóa Học</option>
+            <option value="sinh_hoc">Sinh Học</option>
+            <option value="lich_su">Lịch Sử</option>
+            <option value="dia_ly">Địa Lý</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>📁 Chọn File Câu Hỏi</label>
+          <input type="file" name="question_file" accept=".csv,.txt,.doc,.docx" required>
+          <div class="help-text">Hỗ trợ: CSV, TXT, DOC, DOCX với bất kỳ số lượng câu hỏi nào</div>
+        </div>
+        
+        <button type="submit" class="btn btn-success">✅ Upload & Tạo Bộ</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- List Tab -->
+  <div id="list" class="tab-content">
+    <div class="section">
+      <div class="section-title">Các Bộ Câu Hỏi Hiện Có</div>
+      
+      {% if question_sets %}
+        <div class="question-sets-list">
+          {% for set in question_sets %}
+            <div class="question-set-card">
+              <div class="card-title">{{ set.name }}</div>
+              <div class="card-meta">📚 {{ set.subject|upper }}</div>
+              <div class="card-meta">❔ {{ set.total_questions }} câu hỏi</div>
+              <div class="card-meta">📅 {{ set.created_at[:10] }}</div>
+              <div class="card-actions">
+                <a href="{{ url_for('view_question_set', set_id=set.id) }}" class="btn btn-primary">👁️ Xem</a>
+                <a href="{{ url_for('delete_question_set', set_id=set.id) }}" class="btn btn-danger" onclick="return confirm('Bạn có chắc muốn xóa?')">🗑️ Xóa</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="color: #777; text-align: center; padding: 30px;">
+          Chưa có bộ câu hỏi nào. <a href="#upload" onclick="showTab('upload')">Tạo bộ mới</a>
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tabName) {
+  // Ẩn tất cả tab content
+  const contents = document.querySelectorAll('.tab-content');
+  contents.forEach(c => c.classList.remove('active'));
+  
+  // Bỏ active class từ tất cả tabs
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  
+  // Hiển thị tab được chọn
+  document.getElementById(tabName).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+# Môi trường ảo Python — mỗi máy tự tạo lại bằng requirements.txt
+.venv/
+venv/
+env/
+ENV/
+
+# Bytecode và cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Cấu hình máy / trình soạn thảo
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Tệp tạm khi chạy thử
+.demo_questions.txt
+*.log
+
+# Dữ liệu sinh ra lúc chạy (bộ câu hỏi người dùng tự tạo)
+# Bỏ dấu # ở dòng dưới nếu không muốn đẩy bộ câu hỏi mẫu lên GitHub
+# data/question_sets.json

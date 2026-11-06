@@ -1,0 +1,234 @@
+{
+  "toan_20260406_140819": {
+    "id": "toan_20260406_140819",
+    "name": "Test HTML Images",
+    "subject": "toan",
+    "total_questions": 2,
+    "questions": [
+      {
+        "question": "Câu 1. <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' alt='test'/>",
+        "options": {
+          "a": "Option A with <img src='data:...' alt='img'/>",
+          "b": "Option B",
+          "c": "Option C",
+          "d": "Option D"
+        },
+        "answer": "b",
+        "is_html": true
+      },
+      {
+        "question": "Câu 2. Regular text",
+        "options": {
+          "a": "A",
+          "b": "B",
+          "c": "C",
+          "d": "D"
+        },
+        "answer": "a",
+        "is_html": false
+      }
+    ],
+    "created_at": "2026-04-06T14:08:19.342996",
+    "updated_at": "2026-04-06T14:08:19.343023"
+  },
+  "vat_ly_20260406_141535": {
+    "id": "vat_ly_20260406_141535",
+    "name": "Vật lý 12 lần 2",
+    "subject": "vat_ly",
+    "total_questions": 19,
+    "questions": [
+      {
+        "question": "Đường sức từ không có tính chất nào sau đây?",
+        "options": {
+          "a": "Qua mỗi điểm trong không gian chỉ vẽ được một đường sức từ.",
+          "b": "Các đường sức từ là các đường cong khép kín hoặc vô hạn ở hai đầu.",
+          "c": "Chiều của các đường sức từ là chiều của từ trường.",
+          "d": "Các đường sức từ của cùng một từ trường có thể cắt nhau."
+        },
+        "answer": "d"
+      },
+      {
+        "question": "Khi nói về từ trường, phát biểu nào sau đây sai?",
+        "options": {
+          "a": "Từ trường là trường lực gây ra bởi dòng điện hoặc nam châm.",
+          "b": "Cảm ứng từ tại một điểm đặc trưng cho từ trường về mặt tác dụng lực tại điểm đó.",
+          "c": "Từ trường tác dụng lực từ lên một dòng điện hay một nam châm đặt trong nó.",
+          "d": "Phương của lực từ tại một điểm trùng với phương tiếp tuyến của đường sức từ tại điểm đó."
+        },
+        "answer": "d"
+      },
+      {
+        "question": "Hình nào biểu diễn đúng hướng lực từ tác dụng lên một đoạn dây dẫn thẳng mang dòng điện I có chiều như hình vẽ đặt trong từ trường đều, đường sức từ có hướng như hình vẽ?\n\n<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkwAAABwCAYAAADsQy88AAAAAXNSR0IArs4c6QAAIABJREFUeF7t3QeUNUW1NuDCnDHnjFkRA0gSCQoGRAFBMKLCRQERBUFQRIKgIEEElCgqKFERARUjJjCQVAyAWcw5Z/nXU/fW9x8O0109MyfNOXuvNesL093V/VbVrneH2rXctddee20KCQQCgUAgEAgEAoFAIBCYE4HlSBCmGB2BQCAQCAQCgUAgEAg0IxCEKUZHIBAIBAKBQCAQCAQCFQSCMMUQCQQCgUAgEAgEAoFAIAhTjIFAIBAIBAKBQCAQCAQWh0B4mBaHX9wdCAQCgUAgEAgEAjOAQBCmGejk+MRAIBAIBAKBQCAQWBwCQZgWh1/cHQgEAoFAIBAIBAIzgEAQphno5PjEQCAQCAQCgUAgEFgcAkGYFodf3B0IBAKBQCAQCAQCM4BAEKYZ6OT4xEAgEAgEAoFAIBBYHAJBmBaHX9wdCAQCgUAgEAgEAjOAwFAI0+9///t0gxvcIN3mNrfJEP7yl79Mv/jFL5bBefe73z399Kc/Xfbv//znP+llL3tZWm655dJFF13UCPu//vWv9O1vfzvd8IY3TA960IPSjW50o9Yu+v73v5/ucpe7pFvc4ha5Pe2GzCYC/f1/5ZVXpn/+858ZDOPOOPn5z3++DJw///nPafvtt0+PfOQj07vf/e5G0H7729+mn/zkJ+mmN71peuADH5ifNZf86U9/Sj/4wQ/yrx760IfmMfzrX/863elOd5rNDomvriLwm9/8Jo+T2972tvlaOpQuLXKve90rj1l6kdCHb3jDG9IHPvCB9Je//CWPybnE9cb/jW984/TgBz+49T2uvvrq9Pe//z3rztvd7nbpW9/6Vnr4wx9effe4YOkiQFfRY7e61a3yR9CdxmKR29/+9oneK/Lf//437bPPPlkPfulLX2r88L/97W/pO9/5Tv79Qx7ykDz+2uTHP/5xuutd75qvM879fdwycMJ01VVXpZ133jm9733vW0aYfvWrX6W99947vf3tb08HH3xwevGLX5wn3rrrrptufetbZ5L0gAc8IO27777pqU99alp11VUbJ/pzn/vc9OlPfzpdccUVjQDquCc/+cnphz/8YTr//PPTGmuskdu+9NJL03HHHde4qI27M6L94SBw/PHHp6985SvpmGOOWdYA4m0sXXbZZekb3/hGuvOd75w++clPpi233DI9/elPT0cccUS6733vm7bYYot01FFHpTve8Y5zvtzvfve79PjHPz4h/V/72tfSTW5ykzmve9SjHpW++tWv5t/tuOOO6fDDD0/Pe97z0nrrrZe22Wab4Xx4PHXJImBcPfvZz05nnnlmWn755fN3IEtvfvOb02GHHZaJ0ate9apMogrpufjii9NKK62Ujj322Dx2n/a0pzXq0cc85jGJUcCobBLj1NxBmCxWxvd73/ve9Mc//jHttddeSxbbePFmBOjJXXbZJZ111lnpDne4Q77wZz/7WV63Dz300PxDRyJRm266aSbp5557bjYW6TT68p73vOecDSBMW221VTrjjDMyuWpyYCBjz3zmM9PXv/71PObufe97pxNOOCF97GMfS6eddtpYu2+ghMlEWnHFFTMgj3vc467zYQgTFnrqqadmUDFWgLGeTHqA6JjVV189/99HPvKRbNGwhixGOpFsu+222YI65JBDEgb6kpe85HrAf+hDH8rP8+cXvvCFTJjI85///PTYxz42K5qQ2UCAAjBJjQPjqYgxtfbaa+f/v/baa/N/u9a4RWROPPHErCRc96xnPStfx8qxOH3ve99bRqbcZ0yxynbYYYf073//e9lYLW198YtfzISLInn0ox+d/5vBYMFac801s3ERVvtsjMcuX8nQowcReN7IXkGY9thjj0z+6UJSvJp/+MMf0uc///lsGCLxiNZ5552XxxajgLz61a9ON7vZzdIqq6ySPZzGuXuM+fvd737XmR8IPmK12267pbe85S3ZQ3qf+9wnbbjhhlmnvu51r+vyOXHNEkHA+OHEQEoQoF458MAD0+67757X9s022yz99a9/zeSc98fYQqSNjyc96UlZB15wwQVZ3xprrt1uu+0yuRJJMnaNu2uuuSa9/OUvX+ZBLe1p4x3veEd2jJgLCBNZZ511shHB8z8uGShhQmKQGYtLvxTC9Na3vjVPOGE7kw6oJVxn4pvQJieLHKDf/OY3c7iEReUZlMQ73/nO9J73vCdb/sIqX/7yl6/nNTrppJPSC1/4wusQJh2gQ3VCEwseV0dEu8NBwMJgku26667XaaCXMAk7ENYMcmTxOPnkk9OFF16YCc3pp5+eNt988zzGVl555TxGWVmXXHJJXlAQJiEOFtH973//9La3vS17kfoF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hgc96EHppje9aeM9//3vf9PFF1+cLrnkkvSf//wnrbTSSmmNNdaotvPjH/84feITn0h/+MMf0n3ve9/0tKc9Ld3kJjdpbOeaa65JH/7wh9M///nPtPrqq6fHPOYxrVaNSfzVr341felLX0r/+Mc/0iMe8Yj0hCc8Id3oRjeqfn9cEAgsFgFjrm3eLPb5cf/kIPDLX/4y/eQnP0k3u9nNso7tomP+9Kc/pe9+97vp1re+dbr//e9f1WWXX355+vKXv5z1H1221lprVdv50Y9+lD7ykY+kf/3rX2nNNddMj370oxtB+/e//50+97nPpSuuuCLr4cc97nHpUY96VNVz9I1vfCNdeOGF6be//W067rjj0jOe8Yy07bbbpoc85CGT00HxJoFASsbycstdixk0yK9+9at0yimnZFKCMK266qp5orXJX//61/Tud787T4Ab3OAG6U53ulN6wQte0Kj8f/GLX6T3ve996Y9//GN+7C1ucYu0ySabpAc84AGt7bzrXe9KP/zhD/M1N77xjdMjH/nI9PSnP73xHu/0gx/8IP/+9re/fZ6UbQsShaQN30F8/1Oe8pTcTkggMAoEjjzyyLTZZpulu9zlLtWFZxTvE20MHoHf/OY3Wf/9/ve/z4SJwbjBBhtUdexJJ52UEC166ZnPfGYmWk1Cf7/nPe+5ji5jYCJObdKrY+nM7bffvtGQRZSQK/qf3O52t0tbbbVVWn755RubQMSOP/74/B0EoWPUkl122SXtuuuu2eMU4brBj7tZfCLnDE6yUKkSptNOOy1dddVVSUPkDne4Q3r5y1/e2t63v/3t9P73vz+xOAgygzDd6173mvM+nh9kplzvgzbeeOO04oortrZz+OGHZyVDTChephe+8IWN91h8KCdCybziFa/ICqpJPPvoo4/O3iXivZ70pCdl71RIIDAKBM4999y86Gy00UZpv/32a5xDo3iXaGM4CJxzzjmJ96fo2Nve9rZpp512am2MoXjyySdnnUn33eMe90hbb7114z2MvmOOOSZ7l4ouQ8oYwG1yxBFHXIdk7bzzzo1eKZ74j33sY8u+g9eIMdzmLWOru6Z8u3cR0Shivdl7773TS1/60ryOhAQCi0HAWPva176W1l9//QU9pkqYPvCBD6RvfvObOVRGsP3tttuutTEEC2EqkxMped7znpfuec97znkfz9J73/veTGZMoNvc5jbpOc95TjWWfd555+WQGaWBAD35yU9u9f6wfi699NI8OZG35z//+a2T+e9//3u2/Exg3++9WPtN37GgHoibFowAb+F97nOfvGD4uz5tCxfrd2FiFrBQgUUHyW4TfX+3u90tX4LY1/peKFr4+n73u18el9pYYYUVqt/405/+NN397nfP1wk19xoXFs+3ve1t2Vh57nOfm170ohfl3/PcGpe8wHe9612rbcQFk4lA0UvFYOxilAqVIUw8NMb/ve997zwumsS4FCkwzuhYYTz5QohWm9Cxl112Wb7HXKMzmyx0IcUzzzwzRwq8k3ljvNLNTWL8nnrqqXn++rv3O+GEE/Lckf6www47ZJ27GK/AZPb6eN+qV8fQcTzYNYzpMjoKcXX/He94x8a+NV7oWlEiz/V346ctZaZfx3bRt+658sorczt0v3bMhabIEeeHcf+Xv/wlO36EfR/60Id27owqYfJgZObXv/51DpUZxHJ/2sQkNjl1hIljkXn2s5/dSk7+/Oc/Z+vEpHniE5+YQ2Y1Qcg+9alPZQuIa7kWKkOAPv7xjyd/dm3D4lru8e1l8ay9W/x++AjwSq688srZAygH7sUvfnGrFWpcuoflywh46lOfml772te23iMRlTVCQQhrCBW3CdKvjS233DJ7ZoUajH1i3PFQljBy73OMZT9I3S1vecvrED+LXfGMmk88ENtss0163etel+cM4rTOOusMH/BoYSgI0DF0LOLLuOT1kS/UJsb8GWeckRCnW93qVplUFMLddF+vLlt77bU7kWxjzxgzd+hMYbY2YSx85jOfyd9h3lgzaqINuaj0+L777psXu0MPPTSnP4QMB4Gzzjork53HPvaxiVPkJS95SdWDd/7552cia52l44w7JJ0+6hd6DPHFFYyZs88+O6fA0G1twkEhH891wrNtXtPyHGFjxIczh6NGO01hYHNACPiggw7KOYPIldC2fLu2aFNpq0qYXIjM+MEsfXyNiboHsCX3h8XUJVF8OEMjnjqtCFC0Br+Ji6C0WbIFg+I1RDZYwsKr++yzT+MCJY9NG8awNmoWknaQGwYD610orUsCr/l14okn5gVG+Lq3Hd5WVrjnIXjPetazMvkSLl9llVU6Je9O6xiYlu+iyI1HY4Wx2EXHIk3SBoyVGpFZCjjJsUL6EEYesJDhIYAA82x+61vfyqSH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\" alt=\"image\" style=\"max-width:100%;height:auto;border-radius:6px;margin:8px 0\">",
+        "options": {
+          "a": "Hình 1.",
+          "b": "Hình 2.",
+          "c": "Hình 3.",
+          "d": "Hình 4."
+        },
+        "answer": "a"
+      },
+      {
+        "question": "Một đoạn dây dẫn dài 0,2 m đặt trong từ trường đều sao cho dây dẫn hợp với vectơ cảm ứng từ một góc 300. Biết dòng điện chạy qua dây là 10 A, cảm ứng từ là 2.10-4 T. Lực từ tác dụng lên đoạn dây dẫn này là",
+        "options": {
+          "a": "10-4 N.",
+          "b": "2.10-4 N.",
+          "c": "10-3 N",
+          "d": "2.10-3 N"
+        },
+        "answer": "b"
+      },
+      {
+        "question": "Trong một mạch kín dòng điện cảm ứng xuất hiện khi",
+        "options": {
+          "a": "trong mạch có một nguồn điện.",
+          "b": "mạch điện được đặt trong một từ trường đều.",
+          "c": "mạch điện được đặt trong một từ trường không đều.",
+          "d": "từ thông qua mạch điện biến thiên theo thời gian."
+        },
+        "answer": "d"
+      },
+      {
+        "question": "Trong các phát biểu sau, phát biểu nào là đúng? (1) Độ lớn từ thông qua một mạch kín càng lớn khi số lượng đường sức từ xuyên qua mạch kín này càng nhỏ. (2) Đơn vị của từ thông là tesla (T). (3) Khi từ thông qua mặt giới hạn bởi một khung dây dẫn kín biến thiên theo thời gian thì trong khung dây xuất hiện dòng điện cảm ứng. (4) Trong hiện tượng cảm ứng điện từ, dòng điện cảm ứng sinh ra trong một khung dây dẫn kín có tác dụng chống lại sự biến thiên từ thông qua chính khung dây đó.",
+        "options": {
+          "a": "(1), (2).",
+          "b": "(2), (3).",
+          "c": "(3), (4).",
+          "d": "(1), (4)."
+        },
+        "answer": "c"
+      },
+      {
+        "question": "Cho một nam châm thẳng rơi theo phương thẳng đứng qua tâm O của vòng dây dẫn tròn nằm ngang như hình vẽ. Trong quá trình nam châm rơi, vòng dây xuất hiện dòng điện cảm ứng có chiều",
+        "options": {
+          "a": "là chiều dương quy ước trên hình.",
+          "b": "ngược với chiều dương quy ước trên hình.",
+          "c": "ngược với chiều dương quy ước khi nam châm ở phía trên vòng dây và chiều ngược lại khi nam châm ở phía dưới.",
+          "d": "là chiều dương quy ước khi nam châm ở phía trên vòng dây và chiều ngược lại khi nam châm ở phía dưới."
+        },
+        "answer": "c"
+      },
+      {
+        "question": "Theo định luật Lenz, dòng điện cảm ứng xuất hiện trong mạch kín có chiều sao cho từ trường do nó sinh ra có tác dụng:",
+        "options": {
+          "a": "Luôn cùng chiều với từ trường ban đầu.",
+          "b": "Chống lại sự biến thiên của từ thông ban đầu.",
+          "c": "Triệt tiêu hoàn toàn từ trường ban đầu.",
+          "d": "Làm tăng tốc độ biến thiên của từ thông."
+        },
+        "answer": "b"
+      },
+      {
+        "question": "Một khung dây phẳng diện tích 20 cm2 đặt trong từ trường đều B=0,1 T. Vectơ pháp tuyến hợp với B góc 60∘. Từ thông qua khung là:",
+        "options": {
+          "a": "10−4 Wb.",
+          "b": "2⋅10−4 Wb.",
+          "c": "1,73⋅10−4 Wb.",
+          "d": "0 Wb."
+        },
+        "answer": "a"
+      },
+      {
+        "question": "Đồ thị phụ thuộc thời gian của cường độ dòng điện chạy qua mạch như hình vẽ. Cường độ hiệu dụng là",
+        "options": {
+          "a": "3A.",
+          "b": "3,353 A.",
+          "c": "5A.",
+          "d": "3,535 A."
+        },
+        "answer": "d"
+      },
+      {
+        "question": "Khi nói về máy phát điện xoay chiều, điều nào sau đây là không đúng ?",
+        "options": {
+          "a": "Phần cảm gọi là Stato, phần ứng gọi là roto.",
+          "b": "Phần đứng yên gọi là stato, phần chuyển động gọi là roto.",
+          "c": "Cấu tạo bởi hai bộ phận chính: phần cảm và phần ứng.",
+          "d": "Phần cảm tạo ra từ trường, phần ứng tạo ra suất điện động cảm ứng."
+        },
+        "answer": "a"
+      },
+      {
+        "question": "Nguyên tắc tạo ra dòng điện xoay chiều dựa trên",
+        "options": {
+          "a": "từ trường quay.",
+          "b": "hiện tượng quang điện.",
+          "c": "hiện tượng tự cảm.",
+          "d": "hiện tượng cảm ứng điện từ."
+        },
+        "answer": "d"
+      },
+      {
+        "question": "Cây trồng biến đổi gene có thể mang lại lợi ích là",
+        "options": {
+          "a": "tăng khả năng kháng sâu bệnh và năng suất.",
+          "b": "làm tăng ô nhiễm môi trường.",
+          "c": "gây hại cho sức khỏe con người.",
+          "d": "giảm khả năng thích nghi với môi trường."
+        },
+        "answer": "a"
+      },
+      {
+        "question": "Hạt nhân nguyên tử  có 3 proton và 4 neutron là. Số nuclôn mang điện tích là",
+        "options": {
+          "a": "3",
+          "b": "4.",
+          "c": ".",
+          "d": "1"
+        },
+        "answer": "a"
+      },
+      {
+        "question": "Biết khối lượng của các hạt proton, neutron và hạt nhân Oxygen  lần lượt là 1,0073 amu; 1,0087 amu; 17,9948 amu. Độ hụt khối của hạt nhân",
+        "options": {
+          "a": "0,1376 u.",
+          "b": "0,1506 u.",
+          "c": "0,1478 u.",
+          "d": "8,2202 u."
+        },
+        "answer": "b"
+      },
+      {
+        "question": "Khi nói về sự phóng xạ, phát biểu nào dưới đây là đúng?",
+        "options": {
+          "a": "Độ phóng xạ của một khối chất phóng xạ phụ thuộc vào áp suất tác dụng lên bề mặt của khối chất phóng xạ đó.",
+          "b": "Chu kì bán rã của một chất phóng xạ phụ thuộc vào khối lượng của chất đó.",
+          "c": "Phóng xạ là phản ứng hạt nhân toả năng lượng.",
+          "d": "Hằng số phóng xạ của một chất phụ thuộc vào nhiệt độ của chất đó."
+        },
+        "answer": "c"
+      },
+      {
+        "question": "Hạt nhân   có cùng",
+        "options": {
+          "a": "số proton.",
+          "b": "số neutron.",
+          "c": "điện tích.",
+          "d": "số nucleon."
+        },
+        "answer": "d"
+      },
+      {
+        "question": "Đại lượng nào đặc trưng cho mức độ bền vững của hạt nhân?",
+        "options": {
+          "a": "Năng lượng liên kết.",
+          "b": "Năng lượng liên kết riêng.",
+          "c": "Độ hụt khối.",
+          "d": "Số khối."
+        },
+        "answer": "b"
+      },
+      {
+        "question": "Phát biểu nào sau đây về phản ứng nhiệt hạch là sai?",
+        "options": {
+          "a": "Phản ứng nhiệt hạch là nguồn gốc năng lượng của Mặt Trời và các ngôi sao.",
+          "b": "Phản ứng nhiệt hạch xảy ra ở nhiệt độ rất cao, cỡ hàng trăm triệu độ.",
+          "c": "Phản ứng nhiệt hạch là tổng hợp các hạt nhân trung bình thành các hạt nhân nặng hơn.",
+          "d": "Phản ứng nhiệt hạch toả năng lượng."
+        },
+        "answer": "c"
+      }
+    ],
+    "created_at": "2026-04-06T14:15:35.847610",
+    "updated_at": "2026-04-06T14:51:21.637360"
+  }
+}

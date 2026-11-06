@@ -1,0 +1,16 @@
+question,option_a,option_b,option_c,option_d,answer
+1+1 bằng bao nhiêu?,1,2,3,4,b
+2+2 bằng bao nhiêu?,3,4,5,6,b
+3+3 bằng bao nhiêu?,5,6,7,8,b
+1+2 bằng bao nhiêu?,2,3,4,5,b
+2+3 bằng bao nhiêu?,4,5,6,7,b
+4+4 bằng bao nhiêu?,7,8,9,10,b
+5+5 bằng bao nhiêu?,9,10,11,12,b
+3+4 bằng bao nhiêu?,6,7,8,9,b
+2+5 bằng bao nhiêu?,6,7,8,9,b
+1+9 bằng bao nhiêu?,9,10,11,12,b
+4+5 bằng bao nhiêu?,8,9,10,11,b
+6+3 bằng bao nhiêu?,8,9,10,11,b
+7+2 bằng bao nhiêu?,8,9,10,11,b
+8+1 bằng bao nhiêu?,8,9,10,11,b
+10+5 bằng bao nhiêu?,14,15,16,17,b

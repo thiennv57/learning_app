@@ -1,0 +1,1404 @@
+{% extends "base.html" %}
+{% block title %}🛡️ Đấu Trường Đồng Đội – Admin{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/battle.css') }}">
+<script src="{{ url_for('static', filename='js/vendor/gsap.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-animals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-hero.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-anim.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="ad-wrap">
+  <div class="ad-title">🛡️ Đấu Trường Đồng Đội – Quản Trị</div>
+  <div class="ad-sub">Chia đội ngẫu nhiên · Điểm đội = tổng điểm thành viên · Xếp hạng theo đội</div>
+
+  <!-- STEP 1: Upload & Create -->
+  <div id="sec-setup" class="section active">
+    <div class="card">
+      <div class="card-title">📂 Tải lên file câu hỏi</div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <div class="uz-icon">📄</div>
+        <div class="uz-text">Kéo thả hoặc click để chọn file<br><small>.txt hoặc .docx</small></div>
+        <div class="uz-filename" id="file-name-label">Chưa chọn file</div>
+        <input type="file" id="file-input" accept=".txt,.docx,.doc">
+      </div>
+
+      <div id="upload-error" class="alert alert-error" style="display:none;margin-top:12px"></div>
+
+      <!-- Source selector: File upload or Question Set -->
+      <div style="margin-top:16px;padding:14px;background:#272046;border-radius:10px">
+        <div style="font-size:.88em;color:#938BC4;font-weight:700;margin-bottom:10px">📚 Nguồn câu hỏi:</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn" id="btn-mode-upload" style="flex:1;background:#3AC2E8;color:#fff" onclick="switchMode('upload')">
+            📤 Tải Lên File
+          </button>
+          <button class="btn" id="btn-mode-select" style="flex:1;background:#272046;color:#938BC4;border:1px solid #3B3268" onclick="switchMode('select')">
+            📋 Chọn Bộ Câu Sẵn
+          </button>
+        </div>
+        
+        <!-- Question set selector (hidden by default) -->
+        <div id="qs-selector" style="display:none">
+          <select id="question-set-dropdown" style="width:100%;padding:10px;background:#120E24;border:1px solid #3B3268;border-radius:8px;color:#ECE8FF;font-size:.9em">
+            <option value="">-- Chọn bộ câu hỏi --</option>
+          </select>
+          <div id="qs-info" style="margin-top:10px;padding:10px;background:#120E24;border-radius:8px;color:#938BC4;font-size:.85em;display:none"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div style="font-size:.88em;color:#938BC4;font-weight:700;margin-bottom:6px">⏱️ Giới hạn thời gian mỗi câu:</div>
+        <div class="time-select">
+          <div class="time-opt selected" data-val="60" onclick="selectTime(this)">60 giây</div>
+          <div class="time-opt" data-val="90" onclick="selectTime(this)">90 giây</div>
+          <div class="time-opt" data-val="120" onclick="selectTime(this)">120 giây</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <button class="btn btn-primary btn-block" id="btn-create" disabled onclick="createGame()">
+          🚀 Tạo Phòng Game
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Lobby + Dashboard -->
+  <div id="sec-game" class="section">
+
+    <!-- Room info -->
+    <div class="card">
+      <div class="card-title">
+        🏠 Phòng Game
+        <span class="badge badge-lobby" id="game-status-badge">Lobby</span>
+      </div>
+      <div id="question-count-info" style="background:#17213F;border:1px solid #3AC2E8;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center;display:none">
+        <div style="color:#6FE3FF;font-weight:700;font-size:1.1em" id="question-count-value">--</div>
+        <div style="color:#9DEEFF;font-size:.85em;margin-top:4px">câu hỏi đã import thành công</div>
+      </div>
+      <div style="color:#938BC4;font-size:.9em;margin-bottom:6px">Gửi link này cho học sinh:</div>
+      <div class="link-box">
+        <input type="text" id="player-link" readonly>
+        <button class="btn btn-primary" onclick="copyLink()">📋 Sao chép</button>
+        <span class="link-copied" id="copy-msg">Đã sao chép!</span>
+      </div>
+      <!-- QR để quét tham gia -->
+      <div class="qr-wrap" id="qr-wrap" style="display:none">
+        <div class="qr-card">
+          <div id="qr-box"></div>
+          <div class="qr-caption">📱 Quét mã để tham gia</div>
+        </div>
+        <button class="btn btn-primary qr-zoom-btn" onclick="toggleQrZoom()">🔍 Phóng to QR</button>
+      </div>
+    </div>
+
+    <!-- QR phóng to toàn màn hình -->
+    <div class="qr-overlay" id="qr-overlay" onclick="toggleQrZoom()">
+      <div class="qr-overlay-inner">
+        <div id="qr-box-big"></div>
+        <div class="qr-overlay-cap">Quét để tham gia phòng</div>
+        <div class="qr-overlay-hint">Chạm để đóng</div>
+      </div>
+    </div>
+
+    <!-- Overlay ôn tập -->
+    <div class="review-overlay" id="review-overlay">
+      <div class="review-card">
+        <div class="review-head">
+          <div class="review-title">📖 Ôn tập — câu bị sai nhiều nhất</div>
+          <button class="arena-btn" onclick="closeReview()" title="Đóng">✕</button>
+        </div>
+        <div class="review-body" id="review-body"></div>
+      </div>
+    </div>
+
+    <!-- Lobby players -->
+    <div class="card" id="lobby-card">
+      <div class="card-title">👥 Học sinh trong phòng</div>
+      <div class="lobby-list" id="lobby-list">
+        <div class="lobby-empty">Chưa có ai tham gia…</div>
+      </div>
+      <div class="team-setup">
+        <div class="team-setup-title">🧩 Chia đội — chọn số đội:</div>
+        <select id="team-count-select">
+          <option value="">-- Chờ người chơi vào phòng --</option>
+        </select>
+        <div class="team-setup-hint" id="team-setup-hint">
+          Khi nhấn Bắt Đầu, người chơi sẽ được chia NGẪU NHIÊN vào các đội.
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-success btn-block" id="btn-start" onclick="startGame()" disabled>
+          ▶️ Chia Đội &amp; Bắt Đầu
+        </button>
+      </div>
+    </div>
+
+    <!-- Game running panel -->
+    <div id="running-panel" style="display:none">
+
+      <!-- Question progress -->
+      <div class="card">
+        <div class="card-title">📋 Câu hỏi hiện tại</div>
+        <div class="double-banner" id="double-banner" style="display:none">⚡ VÒNG NHÂN ĐÔI ĐIỂM ⚡</div>
+        <div class="progress-label" id="q-progress-label">Câu 0 / 0</div>
+        <div class="q-progress"><div class="q-progress-bar" id="q-progress-bar" style="width:0%"></div></div>
+        <!-- Countdown timer (chỉ hiển khi có giới hạn) -->
+        <div class="q-timer" id="q-timer" style="display:none">
+          <div class="q-timer-bar-bg"><div class="q-timer-bar" id="q-timer-bar" style="width:100%"></div></div>
+          <div class="q-timer-val" id="q-timer-val">--</div>
+        </div>
+        <div class="q-display" id="q-display">
+          <div class="q-num" id="q-num"></div>
+          <div class="q-text" id="q-text"></div>
+          <div class="q-options" id="q-options"></div>
+        </div>
+        <!-- Thống kê đáp án (hiện khi có người trả lời) -->
+        <div class="q-stats" id="q-stats" style="display:none"></div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn" id="btn-pause" onclick="togglePause()" style="background:#6e40c9;color:#fff">
+            ⏸️ Tạm dừng
+          </button>
+          <button class="btn btn-warning" onclick="forceAdvance()" id="btn-force" style="flex:1">
+            ⏭️ Ép chuyển vòng (bỏ qua người chưa chọn)
+          </button>
+        </div>
+      </div>
+
+      <!-- Battle Arena -->
+      <div class="card arena-card">
+        <div class="arena-topbar">
+          <div class="arena-title">⚔️ Đấu Trường Tri Thức</div>
+          <div class="arena-tools">
+            <button class="arena-btn" id="fs-toggle" onclick="toggleFullscreen()" title="Toàn màn hình">⛶</button>
+            <button class="arena-btn" id="sound-toggle" onclick="toggleSound()" title="Bật/tắt âm thanh">🔊</button>
+          </div>
+        </div>
+        <div class="arena-caption" id="arena-caption"></div>
+        <div class="arena-body">
+        <div class="arena-stage" id="arena-stage">
+          <div class="scene" id="scene-layer"></div>
+          <div class="players-layer" id="players-layer"></div>
+          <div class="fx-layer" id="fx-layer"></div>
+          <div class="dethrone-banner" id="dethrone-banner"></div>
+          <div class="double-flash" id="double-flash"></div>
+          <div class="pause-overlay" id="pause-overlay"><div class="pause-inner">⏸️<div>Đã tạm dừng</div></div></div>
+        </div>
+        <aside class="arena-rank" id="arena-rank">
+          <h4>🏆 Xếp hạng đội (điểm)</h4>
+          <div id="rank-list"></div>
+        </aside>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Finished panel -->
+    <div id="finished-panel" style="display:none" class="card">
+      <div class="card-title">🏆 Kết Thúc Game</div>
+      <div id="leaderboard"></div>
+      <div style="margin-top:16px">
+        <button class="btn btn-primary btn-block" onclick="location.reload()">🔄 Tạo game mới</button>
+      </div>
+    </div>
+
+  </div><!-- end sec-game -->
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const BASE = '';
+let roomId = null;
+let pollInterval = null;
+let lastState = null;
+let selectedTimeLimit = 60;
+let sourceMode = 'upload'; // 'upload' or 'select'
+let selectedQuestionSet = null; // For storing selected question set info
+let allQuestionSets = []; // For storing all loaded question sets
+
+// ===== TIME SELECTOR =====
+function selectTime(el) {
+  document.querySelectorAll('.time-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTimeLimit = parseInt(el.dataset.val) || 0;
+}
+
+// ===== MODE SWITCHER =====
+function switchMode(mode) {
+  sourceMode = mode;
+  const btnUpload = document.getElementById('btn-mode-upload');
+  const btnSelect = document.getElementById('btn-mode-select');
+  const uploadZone = document.getElementById('upload-zone');
+  const qsSelector = document.getElementById('qs-selector');
+  
+  if (mode === 'upload') {
+    btnUpload.style.background = '#3AC2E8';
+    btnUpload.style.color = '#fff';
+    btnUpload.style.border = 'none';
+    btnSelect.style.background = '#272046';
+    btnSelect.style.color = '#938BC4';
+    btnSelect.style.border = '1px solid #3B3268';
+    uploadZone.style.display = 'block';
+    qsSelector.style.display = 'none';
+    selectedQuestionSet = null;
+  } else {
+    btnUpload.style.background = '#272046';
+    btnUpload.style.color = '#938BC4';
+    btnUpload.style.border = '1px solid #3B3268';
+    btnSelect.style.background = '#3AC2E8';
+    btnSelect.style.color = '#fff';
+    btnSelect.style.border = 'none';
+    uploadZone.style.display = 'none';
+    qsSelector.style.display = 'block';
+    loadQuestionSets();
+  }
+  checkCreateButton();
+}
+
+// ===== LOAD QUESTION SETS FROM API =====
+async function loadQuestionSets() {
+  try {
+    const res = await fetch('/api/question-sets');
+    const data = await res.json();
+    // Response is directly an array of question sets
+    allQuestionSets = Array.isArray(data) ? data : [];
+    const dropdown = document.getElementById('question-set-dropdown');
+    
+    // Keep the default option, remove others
+    dropdown.innerHTML = '<option value="">-- Chọn bộ câu hỏi --</option>';
+    
+    allQuestionSets.forEach(set => {
+      const opt = document.createElement('option');
+      opt.value = set.id;
+      opt.textContent = `${set.name} (${set.subject}) - ${set.questions.length} câu`;
+      dropdown.appendChild(opt);
+    });
+    
+    // Attach change listener if not already attached
+    if (!dropdown.dataset.listenerAttached) {
+      dropdown.addEventListener('change', (e) => {
+        if (e.target.value) {
+          const set = allQuestionSets.find(s => s.id === e.target.value);
+          if (set) {
+            selectedQuestionSet = set;
+            showQuestionSetInfo(set);
+            checkCreateButton();
+          }
+        } else {
+          selectedQuestionSet = null;
+          document.getElementById('qs-info').style.display = 'none';
+          checkCreateButton();
+        }
+      });
+      dropdown.dataset.listenerAttached = 'true';
+    }
+  } catch (e) {
+    console.error('Error loading question sets:', e);
+    const dropdown = document.getElementById('question-set-dropdown');
+    dropdown.innerHTML = '<option value="">-- Lỗi khi tải bộ câu --</option>';
+  }
+}
+
+// ===== SHOW QUESTION SET INFO =====
+function showQuestionSetInfo(set) {
+  const info = document.getElementById('qs-info');
+  const date = new Date(set.created_at).toLocaleDateString('vi-VN');
+  info.innerHTML = `
+    <strong>${set.name}</strong><br>
+    Môn: ${set.subject} | ${set.questions.length} câu | Tạo: ${date}
+  `;
+  info.style.display = 'block';
+}
+
+// ===== CHECK CREATE BUTTON =====
+function checkCreateButton() {
+  const btn = document.getElementById('btn-create');
+  if (sourceMode === 'upload') {
+    btn.disabled = !fileInput.files.length;
+  } else {
+    btn.disabled = !selectedQuestionSet;
+  }
+}
+
+// ===== UPLOAD =====
+const fileInput = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+const fileNameLabel = document.getElementById('file-name-label');
+const btnCreate = document.getElementById('btn-create');
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) {
+    fileNameLabel.textContent = fileInput.files[0].name;
+    checkCreateButton();
+  }
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    fileNameLabel.textContent = e.dataTransfer.files[0].name;
+    checkCreateButton();
+  }
+});
+
+// ===== CREATE GAME =====
+async function createGame() {
+  ensureAudio();
+  const errBox = document.getElementById('upload-error');
+  errBox.style.display = 'none';
+
+  btnCreate.disabled = true;
+  btnCreate.textContent = '⏳ Đang tạo…';
+
+  try {
+    let res;
+    
+    if (sourceMode === 'upload') {
+      // Upload file mode
+      if (!fileInput.files.length) {
+        errBox.textContent = 'Chưa chọn file';
+        errBox.style.display = 'block';
+        btnCreate.disabled = false;
+        btnCreate.textContent = '🚀 Tạo Phòng Game';
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      fd.append('time_limit', selectedTimeLimit);
+
+      res = await fetch('/team-battle/api/create', { method: 'POST', body: fd });
+    } else {
+      // Question set selection mode
+      if (!selectedQuestionSet) {
+        errBox.textContent = 'Chưa chọn bộ câu hỏi';
+        errBox.style.display = 'block';
+        btnCreate.disabled = false;
+        btnCreate.textContent = '🚀 Tạo Phòng Game';
+        return;
+      }
+
+      res = await fetch('/team-battle/api/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          question_set_id: selectedQuestionSet.id,
+          time_limit: selectedTimeLimit
+        })
+      });
+    }
+
+    const data = await res.json();
+
+    if (data.error) {
+      errBox.textContent = data.error;
+      errBox.style.display = 'block';
+      btnCreate.disabled = false;
+      btnCreate.textContent = '🚀 Tạo Phòng Game';
+      return;
+    }
+
+    roomId = data.room_id;
+    const playerLink = window.location.origin + '/team-battle/play/' + roomId;
+    document.getElementById('player-link').value = playerLink;
+    renderQR(playerLink);
+
+    // Hiển thị số câu hỏi import thành công
+    if (data.total_questions) {
+      document.getElementById('question-count-value').textContent = data.total_questions;
+      document.getElementById('question-count-info').style.display = '';
+    }
+    
+    document.getElementById('sec-setup').classList.remove('active');
+    document.getElementById('sec-game').classList.add('active');
+
+    startPolling();
+  } catch (e) {
+    errBox.textContent = 'Lỗi: ' + e.message;
+    errBox.style.display = 'block';
+    btnCreate.disabled = false;
+    btnCreate.textContent = '🚀 Tạo Phòng Game';
+  }
+}
+
+// ===== COPY LINK =====
+// ===== QR CODE =====
+function renderQR(link){
+  if (typeof QRCode === 'undefined') return;   // thư viện chưa tải
+  const wrap = document.getElementById('qr-wrap');
+  const box = document.getElementById('qr-box');
+  const big = document.getElementById('qr-box-big');
+  box.innerHTML = ''; big.innerHTML = '';
+  new QRCode(box, { text: link, width: 172, height: 172, correctLevel: QRCode.CorrectLevel.M });
+  new QRCode(big, { text: link, width: 360, height: 360, correctLevel: QRCode.CorrectLevel.M });
+  wrap.style.display = 'flex';
+}
+function toggleQrZoom(){
+  document.getElementById('qr-overlay').classList.toggle('show');
+}
+
+function copyLink() {
+  const inp = document.getElementById('player-link');
+  inp.select();
+  document.execCommand('copy');
+  const msg = document.getElementById('copy-msg');
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2000);
+}
+
+// ===== START GAME =====
+async function startGame() {
+  ensureAudio();
+  const sel = document.getElementById('team-count-select');
+  const teamCount = sel && sel.value ? parseInt(sel.value) : null;
+  if (!teamCount) { alert('Vui lòng chọn số đội trước khi bắt đầu.'); return; }
+  const res = await fetch('/team-battle/api/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ room_id: roomId, team_count: teamCount })
+  });
+  const data = await res.json();
+  if (data.error) { alert('Lỗi: ' + data.error); return; }
+  if (data.ok) {
+    document.getElementById('btn-start').disabled = true;
+    setTimeout(poll, 100);
+  }
+}
+
+// ===== FORCE ADVANCE =====
+async function forceAdvance() {
+  try {
+    const res = await fetch('/team-battle/api/force-advance', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ room_id: roomId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      console.error('Force advance error:', data.error);
+      alert('Lỗi: ' + (data.error === 'room_not_running' ? 'Game không đang chạy' : data.error));
+    } else {
+      console.log('Force advance success');
+      // Trigger a poll immediately to see the new state
+      setTimeout(poll, 100);
+    }
+  } catch (e) {
+    console.error('Force advance exception:', e);
+    alert('Lỗi khi ép chuyển vòng: ' + e.message);
+  }
+}
+
+// ===== POLLING =====
+function startPolling() {
+  pollInterval = setInterval(poll, 1500);
+  poll();
+}
+
+async function poll() {
+  if (!roomId) return;
+  try {
+    const res = await fetch('/team-battle/api/state?room_id=' + roomId + '&admin=1');
+    const data = await res.json();
+    if (!data.error) renderState(data);
+  } catch (e) {}
+}
+
+// ===== RENDER STATE =====
+function renderState(state) {
+  // Status badge
+  const badge = document.getElementById('game-status-badge');
+  const statusMap = { lobby: ['Lobby', 'badge-lobby'], running: ['Đang chơi', 'badge-running'], finished: ['Kết thúc', 'badge-finished'] };
+  const [label, cls] = statusMap[state.state] || ['?', 'badge-lobby'];
+  badge.textContent = label;
+  badge.className = 'badge ' + cls;
+
+  if (state.state === 'lobby') renderLobby(state);
+  else if (state.state === 'running') renderRunning(state);
+  else if (state.state === 'finished') renderFinished(state);
+}
+
+function renderLobby(state) {
+  document.getElementById('lobby-card').style.display = '';
+  document.getElementById('running-panel').style.display = 'none';
+  document.getElementById('finished-panel').style.display = 'none';
+
+  const list = document.getElementById('lobby-list');
+  if (!state.players.length) {
+    list.innerHTML = '<div class="lobby-empty">Chưa có ai tham gia…</div>';
+    document.getElementById('btn-start').disabled = true;
+    return;
+  }
+
+  list.innerHTML = state.players.map(p =>
+    `<div class="lobby-player ${p.ready ? 'ready' : ''}">
+      <div class="lp-dot"></div>
+      ${escHtml(p.name)} ${p.ready ? '✅' : '⏳'}
+    </div>`
+  ).join('');
+
+  renderTeamSetup(state);
+  const allReady = state.players.length > 1 && state.players.every(p => p.ready);
+  document.getElementById('btn-start').disabled = !allReady;
+}
+
+// Bộ chọn số đội: các phương án chia kèm số người mỗi đội
+let teamSetupSig = '';
+function renderTeamSetup(state) {
+  const sel = document.getElementById('team-count-select');
+  const hint = document.getElementById('team-setup-hint');
+  const opts = state.team_options || [];
+  const n = (state.players || []).length;
+  const sig = n + ':' + opts.map(o => o.count).join(',');
+  if (sig !== teamSetupSig) {
+    teamSetupSig = sig;
+    const prev = sel.value;
+    if (!opts.length) {
+      sel.innerHTML = '<option value="">-- Cần ít nhất 2 người chơi --</option>';
+    } else {
+      const sug = state.suggested_team_count;
+      sel.innerHTML = opts.map(o =>
+        `<option value="${o.count}" ${String(o.count) === prev ? 'selected' : (!prev && o.count === sug ? 'selected' : '')}>` +
+        `${escHtml(o.label)}${o.count === sug ? ' ⭐ (chia đều, nhiều đội nhất)' : ''}</option>`
+      ).join('');
+    }
+  }
+  if (hint) {
+    const chosen = opts.find(o => String(o.count) === sel.value);
+    hint.innerHTML = n < 2
+      ? 'Cần ít nhất 2 người chơi để chia đội.'
+      : (chosen
+          ? `${n} người chơi → <b>${chosen.count} đội</b> (${chosen.sizes.join(' / ')} người)` +
+            (chosen.even ? ' — chia đều tuyệt đối ✅' : ' — chênh nhau 1 người')
+          : 'Chọn số đội ở trên.');
+  }
+}
+
+function renderRunning(state) {
+  document.getElementById('lobby-card').style.display = 'none';
+  document.getElementById('running-panel').style.display = '';
+  document.getElementById('finished-panel').style.display = 'none';
+
+  // Progress
+  const idx = state.current_q_index;
+  const total = state.total_questions;
+  document.getElementById('q-progress-label').textContent = `Câu ${idx + 1} / ${total}`;
+  document.getElementById('q-progress-bar').style.width = ((idx + 1) / total * 100) + '%';
+
+  // Countdown timer
+  const timerRow = document.getElementById('q-timer');
+  if (state.time_limit > 0 && state.time_remaining != null) {
+    timerRow.style.display = 'flex';
+    const pct = Math.max(0, state.time_remaining / state.time_limit * 100);
+    const bar = document.getElementById('q-timer-bar');
+    const val = document.getElementById('q-timer-val');
+    bar.style.width = pct + '%';
+    bar.className = 'q-timer-bar' + (pct > 50 ? '' : pct > 25 ? ' mid' : ' low');
+    val.textContent = Math.ceil(state.time_remaining) + 's';
+    val.style.color = pct > 50 ? '#4FE0A6' : pct > 25 ? '#FFC46B' : '#FF6B8A';
+  } else {
+    timerRow.style.display = 'none';
+  }
+
+  // Question
+  if (state.question) {
+    document.getElementById('q-num').textContent = `Câu ${idx + 1}`;
+    const qTextEl = document.getElementById('q-text');
+    if (state.question.html) {
+      qTextEl.innerHTML = state.question.text;
+    } else {
+      qTextEl.textContent = state.question.text;
+    }
+    const opts = state.question.options;
+    document.getElementById('q-options').innerHTML = Object.entries(opts).map(([k, v]) =>
+      // Màn quản trị thường chiếu lên bảng nên KHÔNG tô đáp án đúng ở đây
+      `<div class="q-opt">${k}. ${state.question.html ? v : escHtml(v)}</div>`
+    ).join('');
+    if (window.renderMathInElement) {
+      try {
+        renderMathInElement(document.getElementById('q-display'), {
+          delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+          throwOnError:false
+        });
+      } catch(e){}
+    }
+  }
+
+  // Vòng Double HP: banner + lóe sáng khi vừa vào vòng double
+  const dblBanner = document.getElementById('double-banner');
+  dblBanner.style.display = state.is_double ? '' : 'none';
+  if (state.is_double && flashedDoubleIdx !== idx) {
+    flashedDoubleIdx = idx;
+    const flash = document.getElementById('double-flash');
+    flash.classList.remove('show'); void flash.offsetWidth; flash.classList.add('show');
+  }
+
+  // Tạm dừng
+  const paused = !!state.paused;
+  document.getElementById('pause-overlay').classList.toggle('show', paused);
+  const pb = document.getElementById('btn-pause');
+  pb.textContent = paused ? '▶️ Tiếp tục' : '⏸️ Tạm dừng';
+  pb.style.background = paused ? '#22A97A' : '#6e40c9';
+
+  // Thống kê đáp án + truất ngôi
+  renderQStats(state);
+  checkDethrone(state);
+
+  // Battle arena (thay cho HP grid + nhật ký text)
+  renderArena(state);
+}
+
+// Nút Tạm dừng / Tiếp tục cả phòng
+async function togglePause() {
+  if (!roomId) return;
+  const paused = document.getElementById('pause-overlay').classList.contains('show');
+  try {
+    await fetch('/team-battle/api/' + (paused ? 'resume' : 'pause'), {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ room_id: roomId })
+    });
+    setTimeout(poll, 100);
+  } catch (e) {}
+}
+
+// Thống kê đáp án câu hiện tại
+function renderQStats(state) {
+  const box = document.getElementById('q-stats');
+  const stats = state.answer_stats && state.answer_stats[String(state.current_q_index)];
+  if (!stats || !stats.total) { box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  const opts = state.question ? Object.keys(state.question.options) : ['A','B','C','D'];
+  const pctCorrect = Math.round(stats.correct / stats.total * 100);
+  box.innerHTML = `<div style="font-size:.82em;color:#938BC4;margin-bottom:2px">📊 Đã trả lời: ${stats.total} · Đúng: ${pctCorrect}%</div>` +
+    opts.map(k => {
+      const n = stats[k] || 0;
+      const w = stats.total ? Math.round(n / stats.total * 100) : 0;
+      // Không đánh dấu đáp án đúng khi vòng đang diễn ra
+      return `<div class="q-stat-row">
+        <span class="q-stat-key">${k}</span>
+        <div class="q-stat-bar-bg"><div class="q-stat-bar" style="width:${w}%"></div></div>
+        <span class="q-stat-n">${n} (${w}%)</span>
+      </div>`;
+    }).join('');
+}
+
+// Truất ngôi: khi có người mới chiếm hạng 1 (có cách biệt rõ)
+let lastLeaderId = null;
+let flashedDoubleIdx = -1;
+function checkDethrone(state) {
+  const teams = state.teams || [];
+  if (!teams.length) return;
+  const leader = teams[0], second = teams[1];
+  const clearLead = !second || leader.hp > second.hp;
+  if (lastLeaderId !== null && leader.team_id !== lastLeaderId && clearLead && leader.hp > 0) {
+    showDethrone(leader.emoji + ' ' + leader.name);
+  }
+  lastLeaderId = leader.team_id;
+}
+function showDethrone(name) {
+  const b = document.getElementById('dethrone-banner');
+  b.textContent = '👑 ' + name + ' đã soán ngôi đầu bảng!';
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  const stage = document.getElementById('arena-stage');
+  stage.classList.remove('shake'); void stage.offsetWidth; stage.classList.add('shake');
+  setTimeout(() => { b.classList.remove('show'); stage.classList.remove('shake'); }, 2400);
+  if (typeof sfxDethrone === 'function') sfxDethrone();
+}
+
+function renderHpGrid(players) {
+  const grid = document.getElementById('hp-grid');
+  grid.innerHTML = players.map(p => {
+    const hp = p.hp;
+    const cls = hp > 60 ? 'high' : hp > 30 ? 'mid' : 'low';
+    return `
+    <div class="hp-card ${p.alive ? '' : 'dead'}">
+      <div class="hp-name">
+        <span>${p.alive ? '' : '💀 '}${escHtml(p.name)}</span>
+        <span class="hp-pct ${cls}">${hp.toFixed(0)}</span>
+      </div>
+      <div class="hp-bar-bg">
+        <div class="hp-bar ${cls}" style="width:${hp}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRoundLog(logs) {
+  if (!logs || !logs.length) return;
+  const box = document.getElementById('round-log');
+  const eventStrings = {
+    damage: e => `⚔️ <b>${escHtml(e.attacker)}</b> → <b>${escHtml(e.target)}</b> −${e.dmg} điểm`,
+    heal:   e => `💊 <b>${escHtml(e.player)}</b> +${e.amount} điểm`,
+    counter:e => `🛡️ Phản đòn! <b>${escHtml(e.target)}</b> trả đòn → <b>${escHtml(e.attacker)}</b> −${e.dmg} điểm`,
+    eliminated: e => `💀 <b>${escHtml(e.player)}</b> đã bị loại!`,
+    set_counter: e => `🛡️ <b>${escHtml(e.player)}</b> kích hoạt phản đòn`,
+  };
+
+  box.innerHTML = logs.slice().reverse().map(round =>
+    `<div class="log-entry">
+      <div class="log-round">Vòng ${round.round}:</div>
+      ${(round.events || []).map(ev =>
+        `<div class="log-event ${ev.type}">${(eventStrings[ev.type] || (() => JSON.stringify(ev)))(ev)}</div>`
+      ).join('')}
+    </div>`
+  ).join('');
+}
+
+function renderFinished(state) {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  document.getElementById('lobby-card').style.display = 'none';
+  document.getElementById('running-panel').style.display = 'none';
+  const panel = document.getElementById('finished-panel');
+  panel.style.display = '';
+
+  const teams = state.teams || [];
+  const medal = ['🥇', '🥈', '🥉'];
+
+  // Bục vinh danh top 3 đội (thứ tự hiển thị: 2 - 1 - 3)
+  const top = teams.slice(0, 3);
+  const disp = [
+    { t: top[1], st: 'silver', r: 2 },
+    { t: top[0], st: 'gold',   r: 1 },
+    { t: top[2], st: 'bronze', r: 3 },
+  ].filter(d => d.t);
+  const podium = disp.map(d => {
+    const lead = (d.t.members || [])[0];
+    return `<div class="podium-col">
+      <div class="podium-figure ${d.st === 'gold' ? 'gold' : ''}">${BattleAnimals.animalSvg(lead && lead.avatar, 0)}</div>
+      <div class="podium-stand ${d.st}">
+        <div class="podium-rank">${medal[d.r - 1]}</div>
+        <div class="podium-name" style="color:${d.t.color}">${d.t.emoji} ${escHtml(d.t.name)}</div>
+        <div class="podium-hp">${fmt(d.t.hp)} điểm</div>
+        <div class="team-podium-tag" style="color:#938BC4">${d.t.member_count} thành viên</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Bảng xếp hạng đội đầy đủ + chi tiết thành viên
+  const list = teams.map((t, i) => {
+    const pct = t.max_hp ? Math.max(0, Math.min(100, t.hp / t.max_hp * 100)) : 0;
+    const cls = pct > 60 ? 'high' : pct > 30 ? 'mid' : 'low';
+    const col = pct > 60 ? '#5FEDB4' : pct > 30 ? '#FFD27A' : '#FF8FA6';
+    const members = (t.members || []).map(m =>
+      `<span class="summary-member">${escHtml(m.name)} · ${fmt(m.hp)}</span>`).join('');
+    return `<div class="summary-row ${i === 0 ? 'win' : ''}" style="flex-wrap:wrap">
+        <span style="font-size:1.3em;width:34px;text-align:center">${medal[i] || (i + 1)}</span>
+        <span style="flex:1;font-weight:700;min-width:0;color:${t.color}">${t.emoji} ${escHtml(t.name)}</span>
+        <div class="rank-bar-bg" style="flex:0 0 130px;height:9px"><div class="rank-bar ${cls}" style="width:${pct}%"></div></div>
+        <span style="font-weight:900;min-width:76px;text-align:right;color:${col}">${fmt(t.hp)} điểm</span>
+      </div>
+      <div class="summary-members">${members}</div>`;
+  }).join('');
+
+  const winner = teams[0];
+  panel.innerHTML = `
+    <div class="card-title">🏆 Tổng Kết Trận Đấu Đồng Đội</div>
+    <div style="text-align:center;font-family:'Fredoka',sans-serif;font-size:1.2em;color:#FFC46B;margin:4px 0 14px">
+      Đội vô địch: <b style="color:${winner ? winner.color : '#FFC46B'}">${winner ? winner.emoji + ' ' + escHtml(winner.name) : '—'}</b> 🎉
+    </div>
+    <div class="summary-podium">${podium}</div>
+    <div style="margin-bottom:10px;color:#938BC4;font-size:.9em">Bảng xếp hạng đội (tổng điểm cao → thấp):</div>
+    ${list}
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="btn" style="flex:1;background:#6e40c9;color:#fff" onclick="showReview()">📖 Ôn tập câu sai</button>
+      <button class="btn btn-primary" style="flex:1" onclick="location.reload()">🔄 Tạo game mới</button>
+    </div>`;
+}
+
+// ===== CHẾ ĐỘ ÔN TẬP (xem lại câu + đáp án + thống kê) =====
+async function showReview() {
+  if (!roomId) return;
+  const ov = document.getElementById('review-overlay');
+  const body = document.getElementById('review-body');
+  body.innerHTML = '<div style="text-align:center;color:#938BC4;padding:30px">Đang tải…</div>';
+  ov.classList.add('show');
+  try {
+    const res = await fetch('/team-battle/api/review?room_id=' + roomId);
+    const data = await res.json();
+    if (data.error) { body.innerHTML = '<div style="color:#FF6B8A">Không tải được dữ liệu ôn tập.</div>'; return; }
+    const items = (data.questions || []).filter(q => q.stats.total > 0)
+      .map(q => {
+        const wrongRate = (q.stats.total - q.stats.correct) / q.stats.total;
+        return { ...q, wrongRate };
+      })
+      .sort((a, b) => b.wrongRate - a.wrongRate);  // câu sai nhiều lên đầu
+    if (!items.length) { body.innerHTML = '<div style="color:#938BC4;text-align:center;padding:30px">Chưa có dữ liệu trả lời.</div>'; return; }
+    body.innerHTML = items.map((q, i) => {
+      const st = q.stats;
+      const pctWrong = Math.round(q.wrongRate * 100);
+      const opts = Object.entries(q.options).map(([k, v]) => {
+        const n = st[k] || 0; const w = st.total ? Math.round(n / st.total * 100) : 0;
+        const corr = k === q.answer;
+        return `<div class="q-stat-row">
+          <span class="q-stat-key ${corr ? 'correct' : ''}">${k}${corr ? '✓' : ''}</span>
+          <span style="flex:0 0 auto;max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${corr ? '#4FE0A6' : '#C9C2EE'}">${q.html ? v : escHtml(v)}</span>
+          <div class="q-stat-bar-bg"><div class="q-stat-bar ${corr ? 'correct' : ''}" style="width:${w}%"></div></div>
+          <span class="q-stat-n">${n} (${w}%)</span>
+        </div>`;
+      }).join('');
+      return `<div class="review-item">
+        <div class="review-q"><span class="review-badge">${pctWrong}% sai</span> Câu ${q.index + 1}. ${q.html ? q.text : escHtml(q.text)}</div>
+        <div class="q-stats" style="display:flex">${opts}</div>
+      </div>`;
+    }).join('');
+    if (window.renderMathInElement) { try { renderMathInElement(body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false}); } catch(e){} }
+  } catch (e) {
+    body.innerHTML = '<div style="color:#FF6B8A">Lỗi tải dữ liệu.</div>';
+  }
+}
+function closeReview() {
+  document.getElementById('review-overlay').classList.remove('show');
+}
+
+// ======================================================================
+// ===================  BATTLE ARENA (hoạt ảnh real-time)  ==============
+// ======================================================================
+let charEls = {};        // player_id -> DOM node
+let animalIdxByPid = {}; // player_id -> chỉ số con vật (để dùng lại ở màn tổng kết)
+let rosterSig = '';      // chữ ký danh sách người chơi (phát hiện thay đổi)
+let lastActionSeq = 0;   // seq sự kiện tức thời cao nhất đã phát
+let actionQueue = [];    // hàng đợi sự kiện chờ phát hoạt ảnh
+let processingQueue = false;
+let nameToPidMap = {};   // tên -> player_id (dựng lại mỗi poll)
+let teamColorByPid = {}; // player_id -> màu đội
+let teamNameByPid = {};  // player_id -> tên đội (kèm biểu tượng)
+let adminLastState = null;
+let lastHpByPid = {};    // HP lần poll trước (cho số nổi +/- theo thời gian thực)
+let lastStreakByPid = {};// Chuỗi lần poll trước (để hiện hiệu ứng khi tăng)
+
+function fmt(x){ return Number.isInteger(x) ? x : Math.round(x*10)/10; }
+function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// Màu khăn quàng ổn định theo tên người chơi
+function colorFor(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))%360; return `hsl(${h},70%,60%)`; }
+
+// Mọi người chơi dùng CHUNG một nhân vật hoạt hình 3D (cùng hình dáng, cùng kích thước gốc).
+// Khác biệt duy nhất là màu khăn quàng; kích thước hiển thị do số điểm quyết định.
+
+// Đường đua trước cổng trường: ai CAO ĐIỂM chạy trước, ai thấp điểm chạy sau.
+// Trên mặt đường không đánh số; chỉ hiện tên và điểm trên đầu từng nhân vật.
+let lastCorrectByPid = {};
+
+function drawScene(){
+  const sc = document.getElementById('scene-layer');
+  if (!sc || sc.dataset.drawn) return;
+  sc.innerHTML = BattleHero.sceneMarkup() +
+    '<div class="trophy">' + BattleHero.trophySvg() + '<span>ĐÍCH</span></div>';
+  sc.dataset.drawn = '1';
+}
+
+// Chỗ đứng trên đường do TỔNG ĐIỂM CỦA ĐỘI quyết định: cả đội đứng chụm lại,
+// đội nhiều điểm hơn chạy trước. Trong đội, các bạn lệch nhau chút cho dễ nhìn.
+function applyHeroSizes(players){
+  players = players || [];
+  const teams = (adminLastState && adminLastState.teams) || [];
+  const sc = p => { const e = charEls[p.player_id]; if (!e) return;
+    const n = e.querySelector('[data-score]'); if (n) n.textContent = Math.round(p.hp); };
+  const mung = p => {
+    const prev = lastCorrectByPid[p.player_id];
+    const now = p.correct_count || 0;
+    if (prev != null && now > prev) jumpHurdle(p.player_id);
+    lastCorrectByPid[p.player_id] = now;
+  };
+
+  if (teams.length){
+    const range = BattleHero.scoreRange(teams.map(t => t.hp));
+    const dauBang = teams.slice().sort((a, b) => b.hp - a.hp)[0];
+    teams.forEach(t => {
+      const m = (t.members || []).length;
+      (t.members || []).forEach((mem, mi) => {
+        const el = charEls[mem.player_id]; if (!el) return;
+        el.style.left = BattleHero.teamX(t.hp, range, mi, m).toFixed(2) + '%';
+        // cả đội dẫn đầu cùng được đánh dấu
+        el.classList.toggle('leader', !!dauBang && !range.flat && t.team_id === dauBang.team_id);
+      });
+    });
+    players.forEach(p => { sc(p); mung(p); });
+    return;
+  }
+
+  // Chưa chia đội (đang ở lobby): xếp theo điểm từng người như chế độ cá nhân
+  const range = BattleHero.scoreRange(players.map(p => p.hp));
+  const top = players.slice().sort((a, b) => b.hp - a.hp)[0];
+  players.forEach(p => {
+    const el = charEls[p.player_id]; if (!el) return;
+    el.style.left = BattleHero.runX(p.hp, range).toFixed(2) + '%';
+    el.classList.toggle('leader', !!top && !range.flat && p.player_id === top.player_id);
+    sc(p); mung(p);
+  });
+}
+
+function jumpHurdle(pid){
+  const el = charEls[pid]; if (!el) return;
+  if (window.BattleAnim && BattleAnim.available){ BattleAnim.jump(pid, el); return; }
+  el.classList.remove('jump'); void el.offsetWidth; el.classList.add('jump');
+  setTimeout(() => el.classList.remove('jump'), 950);
+}
+
+function renderArena(state){
+  const players = state.players || [];
+  adminLastState = state;
+  ensureRoster(state, players);
+  renderTeamRank(state);
+  nameToPidMap = {}; players.forEach(p => nameToPidMap[p.name] = p.player_id);
+  syncHp(players);
+  // Hoạt ảnh TỨC THỜI: phát ngay các sự kiện mới trong action_log (khi người chơi vừa dùng skill)
+  const log = state.action_log || [];
+  const fresh = log.filter(e => e.seq > lastActionSeq);
+  if (fresh.length){
+    lastActionSeq = log.reduce((m, e) => Math.max(m, e.seq), lastActionSeq);
+    fresh.forEach(e => actionQueue.push(e));
+    processActionQueue();
+  }
+}
+
+// Hàng đợi phát hoạt ảnh tuần tự cho từng sự kiện tức thời
+async function processActionQueue(){
+  if (processingQueue) return;
+  processingQueue = true;
+  while (actionQueue.length){
+    const ev = actionQueue.shift();
+    try { await playEvent(ev, ev, nameToPidMap, adminLastState); } catch (e) {}
+    await delay(120);
+  }
+  setCaption('');
+  processingQueue = false;
+}
+
+function ensureRoster(state, players){
+  // Thứ tự đội cố định theo team_id (bảng xếp hạng đổi liên tục, vị trí trên sân thì không)
+  const teams = [...(state.teams || [])].sort((a, b) => a.team_id.localeCompare(b.team_id));
+  const sig = teams.length
+    ? teams.map(t => t.team_id + '#' + t.members.map(m => m.player_id).join(',')).join('|')
+    : players.map(p => p.player_id + ':' + p.name).join('|');
+  if (sig === rosterSig) return;
+  rosterSig = sig;
+
+  const layer = document.getElementById('players-layer');
+  const n = players.length;
+  layer.className = 'players-layer';
+  layer.innerHTML = '';
+  charEls = {};
+  animalIdxByPid = {};
+  teamColorByPid = {};
+  teamNameByPid = {};
+
+  // Mọi người chạy trên cùng mặt đường; xếp thành nhiều hàng cho đỡ che nhau
+  drawScene();
+  const stage = document.getElementById('arena-stage');
+  const scale = BattleHero.fitScale(stage, n);
+  const looks = BattleAnimals.assignColors(players);
+  lastCorrectByPid = {};
+  if (window.BattleAnim) BattleAnim.reset();
+
+  // Chưa chia đội (đang ở lobby) → mọi người chung một nhóm
+  const groups = teams.length
+    ? teams.map(t => ({ team: t, members: t.members }))
+    : [{ team: null, members: players }];
+
+  let gi = 0;                                   // chỉ số hàng chạy liên tục
+  groups.forEach(g => {
+    g.members.forEach((p, mi) => {
+      const top = BattleHero.rowY(gi, n);   // chỉ số toàn cục: hai đội sát điểm vẫn khác hàng
+      const look = looks[p.player_id] || { animal: p.avatar, variant: 0 };
+      const el = document.createElement('div');
+      el.className = 'char';
+      el.style.left = BattleHero.RUN_START + '%';
+      el.style.top  = top + '%';
+      el.dataset.sl = scale.toFixed(3);
+      el.style.setProperty('--s', scale.toFixed(3));
+      el.style.setProperty('--ns', Math.max(0.85, Math.min(1.6, 1 / scale)).toFixed(3));
+      el.style.zIndex = Math.round(top * 10);
+      el.dataset.pid = p.player_id;
+      el.dataset.team = g.team ? g.team.team_id : '';
+      // Trên đường chỉ hiện chấm màu đội cho gọn; tên đội nằm ở bảng xếp hạng
+      const tag = g.team
+        ? `<span class="char-teamdot" title="${escHtml(g.team.name)}" style="background:${g.team.color}">${g.team.emoji}</span>`
+        : '';
+      el.innerHTML = `
+        <div class="char-shadow"></div>
+        <div class="char-badges" data-badges></div>
+        <div class="char-nameplate">
+          ${tag}
+          <span class="cn-name">${escHtml(p.name)}</span>
+          <span class="cn-score" data-score>${Math.round(p.hp)}</span>
+        </div>
+        <div class="char-figure">
+          ${BattleAnimals.animalSvg(look.animal, look.variant)}
+        </div>`;
+      layer.appendChild(el);
+      charEls[p.player_id] = el;
+      if (window.BattleAnim) BattleAnim.startRun(p.player_id, el, 0.9 + Math.random() * 0.25);
+      animalIdxByPid[p.player_id] = gi;
+      if (g.team) {
+        teamColorByPid[p.player_id] = g.team.color;
+        teamNameByPid[p.player_id] = g.team.emoji + ' ' + g.team.name;
+      }
+      gi++;
+    });
+  });
+
+  // Dựng lại giữa chừng → không diễn lại lịch sử
+  const alog = state.action_log || [];
+  lastActionSeq = alog.reduce((m, e) => Math.max(m, e.seq), 0);  // không phát lại lịch sử
+  actionQueue = [];
+  lastLeaderId = null;      // reset truất ngôi khi danh sách người chơi đổi
+  flashedDoubleIdx = -1;
+  lastHpByPid = {};
+  lastStreakByPid = {};
+  players.forEach(p => { lastHpByPid[p.player_id] = p.hp; lastStreakByPid[p.player_id] = p.correct_streak || 0; });
+  syncHp(players);
+}
+
+function setBar(pid, hp){
+  const el = charEls[pid]; if (!el) return;
+  const sc = el.querySelector('[data-score]');
+  if (sc) sc.textContent = Math.round(hp);
+  const bar = el.querySelector('[data-bar]');
+  const pct = el.querySelector('[data-pct]');
+  const w = Math.max(0, Math.min(100, hp));
+  const cls = w > 60 ? 'high' : w > 30 ? 'mid' : 'low';
+  bar.className = 'cn-bar ' + cls;
+  bar.style.width = w + '%';
+  pct.textContent = fmt(hp);
+}
+
+// Đồng bộ thanh HP + huy hiệu + hiệu ứng chuỗi (sát thương/hoạt ảnh skill do action_log lo)
+function syncHp(players){
+  applyHeroSizes(players);
+  players.forEach(p => {
+    const el = charEls[p.player_id]; if (!el) return;
+    setBar(p.player_id, p.hp);
+    const wasDead = el.classList.contains('dead');
+    const isDead = p.hp <= 0;
+    el.classList.toggle('dead', isDead);
+    if (window.BattleAnim && isDead !== wasDead){
+      if (isDead) BattleAnim.freeze(p.player_id, el);
+      else BattleAnim.startRun(p.player_id, el, 0.9 + Math.random() * 0.25);
+    }
+    el.classList.toggle('ghost', !!p.hide_active);
+    const badges = el.querySelector('[data-badges]');
+    if (badges){
+      let b = '';
+      if (p.hide_active) b += '<span class="char-badge">👻</span>';
+      if (p.correct_streak >= 2) b += `<span class="char-badge streak">🔥${p.correct_streak}</span>`;
+      badges.innerHTML = b;
+    }
+    // Hiệu ứng chuỗi khi tăng (từ trả lời đúng liên tiếp)
+    const ps = lastStreakByPid[p.player_id];
+    if (ps != null && p.correct_streak > ps && p.correct_streak >= 2){
+      floatText(p.player_id, '🔥 Chuỗi ×' + p.correct_streak + '!', 'streak');
+      healGlow(p.player_id);
+    }
+    lastHpByPid[p.player_id] = p.hp;
+    lastStreakByPid[p.player_id] = p.correct_streak;
+  });
+}
+
+// ---------- bảng xếp hạng ĐỘI (HP đội = tổng HP thành viên) ----------
+function renderTeamRank(state){
+  const box = document.getElementById('rank-list');
+  if (!box) return;
+  const teams = state.teams || [];
+  if (!teams.length){
+    // Chưa chia đội → liệt kê người chơi
+    box.innerHTML = (state.players || []).map(p =>
+      `<div class="rank-row"><div class="rank-main"><div class="rank-name">${escHtml(p.name)}</div></div></div>`
+    ).join('');
+    return;
+  }
+  const medal = ['🥇','🥈','🥉'];
+  box.innerHTML = teams.map((t, i) => {
+    const pct = t.max_hp ? Math.max(0, Math.min(100, t.hp / t.max_hp * 100)) : 0;
+    const cls = pct > 60 ? 'high' : pct > 30 ? 'mid' : 'low';
+    const members = (t.members || []).map(m => {
+      const mw = Math.max(0, Math.min(100, m.hp));
+      const mc = mw > 60 ? 'high' : mw > 30 ? 'mid' : 'low';
+      return `<div class="trc-member">
+        <span class="trcm-name">${m.hide_active ? '👻' : ''}${escHtml(m.name)}</span>
+        <div class="trcm-bar-bg"><div class="rank-bar ${mc}" style="width:${mw}%"></div></div>
+        <span class="trcm-hp">${fmt(m.hp)}</span>
+      </div>`;
+    }).join('');
+    return `<div class="team-rank-card ${i === 0 ? 'lead' : ''}" style="border-left-color:${t.color}">
+      <div class="trc-head">
+        <span class="trc-pos">${medal[i] || (i + 1)}</span>
+        <span class="trc-name" style="color:${t.color}">${t.emoji} ${escHtml(t.name)}</span>
+        <span class="trc-hp">${fmt(t.hp)}</span>
+      </div>
+      <div class="rank-bar-bg"><div class="rank-bar ${cls}" style="width:${pct}%"></div></div>
+      <div class="trc-members">${members}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- hình học sân khấu ----------
+function stageRect(){ return document.getElementById('arena-stage').getBoundingClientRect(); }
+function centerOf(pid, up){
+  up = up || 0;
+  const s = stageRect();
+  const el = charEls[pid];
+  if (!el) return { x: s.width / 2, y: s.height / 2 };
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2 - s.left, y: r.top + r.height / 2 - s.top - up };
+}
+
+// ---------- hiệu ứng rời ----------
+function addTrail(x, y){
+  const fx = document.getElementById('fx-layer');
+  const d = document.createElement('div'); d.className = 'trail';
+  d.style.left = x + 'px'; d.style.top = y + 'px';
+  fx.appendChild(d); setTimeout(() => d.remove(), 500);
+}
+function fireProjectile(fromPid, toPid, kind, opts){
+  opts = opts || {};
+  return new Promise(resolve => {
+    if (!charEls[fromPid] || !charEls[toPid]) return resolve();
+    const fx = document.getElementById('fx-layer');
+    const start = centerOf(fromPid, 18);
+    let end = centerOf(toPid, 10);
+    if (opts.pass){ end = { x: end.x + (end.x - start.x) * 0.5, y: end.y + (end.y - start.y) * 0.5 }; }
+    const p = document.createElement('div'); p.className = 'proj ' + kind;
+    if (kind === 'clock') p.textContent = '⏱️';
+    fx.appendChild(p);
+    const ctrlX = (start.x + end.x) / 2;
+    const ctrlY = Math.min(start.y, end.y) - 70;   // vòng cung
+    const dur = 520, t0 = performance.now();
+    (function frame(now){
+      let t = (now - t0) / dur; if (t > 1) t = 1;
+      const mt = 1 - t;
+      const x = mt*mt*start.x + 2*mt*t*ctrlX + t*t*end.x;
+      const y = mt*mt*start.y + 2*mt*t*ctrlY + t*t*end.y;
+      p.style.left = x + 'px'; p.style.top = y + 'px';
+      if (kind === 'ball' && t < 1 && Math.random() < 0.6) addTrail(x, y);
+      if (t < 1) requestAnimationFrame(frame);
+      else { p.remove(); resolve(); }
+    })(performance.now());
+  });
+}
+function recoil(pid){
+  const el = charEls[pid]; if (!el) return;
+  const c = el.querySelector('.char-cannon'); if (!c) return;
+  c.classList.remove('firing'); void c.offsetWidth; c.classList.add('firing');
+}
+function hitFlash(pid){
+  const el = charEls[pid]; if (!el) return;
+  el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  setTimeout(() => el.classList.remove('hit'), 500);
+}
+function healGlow(pid){
+  const el = charEls[pid]; if (!el) return;
+  el.classList.remove('healed'); void el.offsetWidth; el.classList.add('healed');
+  setTimeout(() => el.classList.remove('healed'), 700);
+  sparkle(pid);
+}
+function sparkle(pid){
+  const c = centerOf(pid, 10), fx = document.getElementById('fx-layer');
+  for (let i = 0; i < 8; i++){
+    const s = document.createElement('div'); s.className = 'spark';
+    s.style.left = c.x + 'px'; s.style.top = c.y + 'px';
+    const a = Math.random()*Math.PI*2, d = 20 + Math.random()*34;
+    s.style.setProperty('--sx', Math.cos(a)*d + 'px');
+    s.style.setProperty('--sy', (-20 - Math.sin(a)*d) + 'px');
+    fx.appendChild(s); setTimeout(() => s.remove(), 900);
+  }
+}
+function floatText(pid, text, cls){
+  const c = centerOf(pid, 30), fx = document.getElementById('fx-layer');
+  const d = document.createElement('div'); d.className = 'float ' + cls;
+  d.style.left = c.x + 'px'; d.style.top = c.y + 'px'; d.textContent = text;
+  fx.appendChild(d); setTimeout(() => d.remove(), 1200);
+}
+function burst(pid, cls){
+  const c = centerOf(pid, 10), fx = document.getElementById('fx-layer');
+  const b = document.createElement('div'); b.className = 'burst ' + (cls || '');
+  b.style.left = c.x + 'px'; b.style.top = c.y + 'px';
+  fx.appendChild(b); setTimeout(() => b.remove(), 500);
+}
+function shockwave(pid){
+  const c = centerOf(pid, 10), fx = document.getElementById('fx-layer');
+  const w = document.createElement('div'); w.className = 'shockwave';
+  w.style.left = c.x + 'px'; w.style.top = c.y + 'px';
+  fx.appendChild(w); setTimeout(() => w.remove(), 900);
+}
+function shieldFx(pid){
+  const el = charEls[pid]; if (!el) return;
+  const fig = el.querySelector('.char-figure'); if (!fig) return;
+  const s = document.createElement('div'); s.className = 'shield'; s.textContent = '🛡️';
+  fig.appendChild(s); setTimeout(() => s.remove(), 700);
+}
+function setCaption(html){
+  const el = document.getElementById('arena-caption');
+  el.innerHTML = html ? `<span class="cap-pill">${html}</span>` : '';
+}
+
+// ---------- va chạm ----------
+function impactDamage(pid, dmg, r){
+  if (!charEls[pid]) return;
+  hitFlash(pid); sfxHit(); burst(pid, 'dmg');
+  floatText(pid, '-' + fmt(dmg), 'dmg');
+  if (r && r.hp_after && r.hp_after[pid] != null) setBar(pid, r.hp_after[pid]);
+}
+function healImpact(pid, amount, r){
+  if (!charEls[pid]) return;
+  healGlow(pid); sfxHeal(); burst(pid, 'heal');
+  floatText(pid, '+' + fmt(amount), 'heal');
+  if (r && r.hp_after && r.hp_after[pid] != null) setBar(pid, r.hp_after[pid]);
+}
+
+// ---------- phát 1 sự kiện ----------
+async function playEvent(ev, r, nameToPid, state){
+  const pid = n => nameToPid[n];
+  // nhãn '<tên> (<đội>)' cho phụ đề trận đấu
+  const who = (name, team) => escHtml(name) + (team ? ` <small style="opacity:.8">(${escHtml(team)})</small>` : '');
+  switch (ev.type){
+    case 'damage': {
+      const a = pid(ev.attacker), t = pid(ev.target);
+      setCaption(`⚔️ ${who(ev.attacker, ev.attacker_team)} → ${who(ev.target, ev.target_team)} <b>-${fmt(ev.dmg)}</b>`);
+      recoil(a); sfxShoot();
+      await fireProjectile(a, t, 'ball');
+      impactDamage(t, ev.dmg, r);
+      break;
+    }
+    case 'counter': {
+      const a = pid(ev.attacker), t = pid(ev.target);
+      setCaption(`🛡️ ${who(ev.target, ev.target_team)} phản đòn ${who(ev.attacker, ev.attacker_team)}`);
+      recoil(a); sfxShoot();
+      await fireProjectile(a, t, 'ball');
+      shieldFx(t); sfxShoot();
+      await fireProjectile(t, a, 'ball');
+      impactDamage(a, ev.dmg, r);
+      break;
+    }
+    case 'evade': {
+      const a = pid(ev.attacker), t = pid(ev.target);
+      setCaption(`👻 ${who(ev.target, ev.target_team)} né đòn của ${who(ev.attacker, ev.attacker_team)}`);
+      recoil(a); sfxShoot();
+      await fireProjectile(a, t, 'ball', { pass: true });
+      break;
+    }
+    case 'heal': {
+      setCaption(`💊 ${who(ev.player, ev.player_team)} <b>+${fmt(ev.amount)}</b>`);
+      healImpact(pid(ev.player), ev.amount, r);
+      await delay(300);
+      break;
+    }
+    case 'time_steal': {
+      const a = pid(ev.attacker), t = pid(ev.target);
+      setCaption(`⏱️ ${who(ev.attacker, ev.attacker_team)} cướp giờ ${who(ev.target, ev.target_team)}`);
+      sfxClock();
+      await fireProjectile(a, t, 'clock');
+      floatText(t, '⏱️ -' + (ev.time_deducted || 15) + 's', 'time'); burst(t);
+      break;
+    }
+    case 'time_bomb': {
+      setCaption(`💣 ${who(ev.attacker, ev.attacker_team)} thả bom thời gian vào các đội khác!`);
+      sfxClock(); shockwave(pid(ev.attacker));
+      (state.players || []).forEach(pl => {
+        if (pl.name !== ev.attacker && (!ev.attacker_team || pl.team_name !== ev.attacker_team))
+          floatText(pl.player_id, '⏱️ -' + fmt(ev.time_deducted || 15) + 's', 'time');
+      });
+      await delay(650);
+      break;
+    }
+    case 'set_counter': {
+      setCaption(`🛡️ ${who(ev.player, ev.player_team)} thủ thế`);
+      shieldFx(pid(ev.player)); await delay(380);
+      break;
+    }
+    case 'hide': {
+      setCaption(`👻 ${who(ev.player, ev.player_team)} ẩn mình`);
+      const el = charEls[pid(ev.player)]; if (el) el.classList.add('ghost');
+      await delay(380);
+      break;
+    }
+    case 'eliminate': {
+      setCaption(`🔮 ${who(ev.player, ev.player_team)} loại 2 gợi ý sai`);
+      sparkle(pid(ev.player)); sfxHeal(); await delay(380);
+      break;
+    }
+    default:
+      await delay(150);
+  }
+}
+
+// ======================================================================
+// ===========================  ÂM THANH  ===============================
+// ======================================================================
+let audioCtx = null, soundOn = true;
+function ensureAudio(){
+  if (!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function toggleSound(){
+  soundOn = !soundOn;
+  ensureAudio();
+  document.getElementById('sound-toggle').textContent = soundOn ? '🔊' : '🔇';
+}
+
+// ===== TOÀN MÀN HÌNH =====
+function toggleFullscreen(){
+  const card = document.querySelector('.arena-card');
+  const d = document;
+  const fsEl = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement;
+  if (!fsEl){
+    const req = card.requestFullscreen || card.webkitRequestFullscreen || card.mozRequestFullScreen;
+    if (req) req.call(card);
+  } else {
+    const exit = d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen;
+    if (exit) exit.call(d);
+  }
+}
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(ev =>
+  document.addEventListener(ev, () => {
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+    const btn = document.getElementById('fs-toggle');
+    if (btn){ btn.textContent = fsEl ? '✕' : '⛶'; btn.title = fsEl ? 'Thoát toàn màn hình' : 'Toàn màn hình'; }
+  })
+);
+function tone(opts){
+  if (!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = opts.type || 'sine';
+  o.frequency.setValueAtTime(opts.freq, t);
+  if (opts.slideTo) o.frequency.exponentialRampToValueAtTime(opts.slideTo, t + opts.dur);
+  g.gain.setValueAtTime(opts.vol || 0.1, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + opts.dur);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t); o.stop(t + opts.dur);
+}
+function sfxShoot(){ tone({ freq: 190, type: 'square', dur: 0.12, vol: 0.10, slideTo: 90 }); }
+function sfxDethrone(){ tone({ freq: 440, type: 'sine', dur: 0.5, vol: 0.12, slideTo: 940 }); setTimeout(() => tone({ freq: 620, type: 'sine', dur: 0.4, vol: 0.1, slideTo: 1240 }), 130); }
+function sfxHeal(){  tone({ freq: 520, type: 'sine',   dur: 0.25, vol: 0.09, slideTo: 880 }); }
+function sfxClock(){ tone({ freq: 300, type: 'triangle', dur: 0.3, vol: 0.08, slideTo: 150 }); }
+function sfxHit(){
+  if (!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime, n = Math.floor(audioCtx.sampleRate * 0.2);
+  const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const g = audioCtx.createGain(); g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1100;
+  src.connect(f).connect(g).connect(audioCtx.destination); src.start(t);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

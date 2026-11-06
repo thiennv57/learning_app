@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.name }} - {{ subject.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">🏠 Trang chủ</a>
+    <span>›</span>
+    <a href="{{ url_for('subject', subject_id=subject_id) }}">{{ subject.icon }} {{ subject.name }}</a>
+    <span>›</span>
+    <span>{{ topic.icon }} {{ topic.name }}</span>
+</div>
+
+<div class="exercise-header" style="--card-color: {{ subject.color }}">
+    <h1>{{ topic.icon }} {{ topic.name }}</h1>
+    <p>{{ topic.description }}</p>
+    {% if mode == 'fill' %}
+    <p style="font-weight:bold;margin-top:4px;">✏️ Tự luận — {{ questions|length }} câu — Độ khó: {{ '⭐' * difficulty }}</p>
+    {% else %}
+    <p style="font-weight:bold;margin-top:4px;">🔤 Trắc nghiệm ABCD — {{ questions|length }} câu — Độ khó: {{ '⭐' * difficulty }}</p>
+    {% endif %}
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+    <p class="progress-text" id="progressText">Câu 1 / {{ questions|length }}</p>
+</div>
+
+<div id="quizContainer">
+    {% for q in questions %}
+
+    <div class="question-card {% if loop.first %}active{% endif %}" data-question="{{ loop.index0 }}" data-type="{{ q.type or 'choice' }}" id="q{{ loop.index0 }}">
+        <div class="question-number">Câu {{ loop.index }}</div>
+        <div class="question-text">{{ q.question|safe }}</div>
+
+        {% if q.type == 'fill' %}
+        <div class="fill-input-area" id="fillArea{{ loop.index0 }}">
+            {% set q_idx = loop.index0 %}
+            <div class="fill-input-wrapper">
+                <input type="text" class="fill-input" id="fillInput{{ q_idx }}" data-question="{{ q_idx }}"
+                    placeholder="{{ q.hint or 'Nhập đáp án...' }}" autocomplete="off"
+                    oninput="onFillInput(this)"
+                    onkeydown="if(event.key==='Enter')checkFillAnswer({{ q_idx }})">
+                <button class="fill-check-btn" onclick="checkFillAnswer({{ q_idx }})" id="fillCheckBtn{{ q_idx }}">🔍 Kiểm tra</button>
+            </div>
+            <div class="fill-result" id="fillResult{{ q_idx }}" style="display:none;"></div>
+        </div>
+        {% else %}
+        <div class="choices-grid">
+            {% set q_idx = loop.index0 %}
+            {% for choice in q.choices %}
+            <button class="choice-btn" data-question="{{ q_idx }}" data-value="{{ choice }}" onclick="selectChoice(this)">
+                <span class="choice-letter">{{ ['A', 'B', 'C', 'D'][loop.index0] }}</span>
+                <span class="choice-text">{{ choice }}</span>
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<div class="quiz-navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="prevQuestion()" disabled>⬅️ Câu trước</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">Câu tiếp ➡️</button>
+    <button class="btn btn-success" id="submitBtn" onclick="submitQuiz()" style="display:none;">✅ Nộp bài</button>
+</div>
+
+<!-- Result Modal -->
+<div class="modal-overlay" id="resultModal" style="display:none;">
+    <div class="modal-content">
+        <div class="result-header" id="resultHeader"></div>
+        <div class="result-score" id="resultScore"></div>
+        <div class="result-stars" id="resultStars"></div>
+        <div class="result-message" id="resultMessage"></div>
+        <div class="result-details" id="resultDetails"></div>
+        <div class="result-actions">
+            <a href="{{ url_for('exercise', subject_id=subject_id, topic_id=topic_id, mode=mode, difficulty=difficulty) }}" class="btn btn-primary">🔄 Làm lại</a>
+            <a href="{{ url_for('subject', subject_id=subject_id) }}" class="btn btn-secondary">📋 Chọn bài khác</a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">🏠 Trang chủ</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const totalQuestions = {{ questions|length }};
+    let currentQuestion = 0;
+    let userAnswers = new Array(totalQuestions).fill(null);
+
+    function selectChoice(btn) {
+        const qIdx = parseInt(btn.dataset.question);
+        // Bỏ chọn tất cả nút trong câu này
+        document.querySelectorAll(`.choice-btn[data-question="${qIdx}"]`).forEach(b => {
+            b.classList.remove('selected');
+        });
+        // Chọn nút được click
+        btn.classList.add('selected');
+        userAnswers[qIdx] = btn.dataset.value;
+
+        // Âm thanh chọn đáp án
+        AudioManager.playSelect();
+
+        // Hiệu ứng star burst tại nút
+        const rect = btn.getBoundingClientRect();
+        createStarBurst(rect.left + rect.width/2, rect.top + rect.height/2, '✨');
+
+        // Cập nhật progress
+        updateProgress();
+    }
+
+    // Đáp án đúng cho câu fill (dùng để kiểm tra ngay)
+    const correctAnswers = {{ questions|tojson }};
+
+    function onFillInput(input) {
+        const qIdx = parseInt(input.dataset.question);
+        const val = input.value.trim();
+        userAnswers[qIdx] = val || null;
+        // Reset trạng thái kiểm tra khi nhập lại
+        const resultEl = document.getElementById('fillResult' + qIdx);
+        if (resultEl) resultEl.style.display = 'none';
+        input.classList.remove('fill-correct', 'fill-wrong');
+        const wrapper = input.closest('.fill-input-wrapper');
+        if (wrapper) wrapper.classList.remove('checked-correct', 'checked-wrong');
+        updateProgress();
+    }
+
+    function checkFillAnswer(qIdx) {
+        const input = document.getElementById('fillInput' + qIdx);
+        const resultEl = document.getElementById('fillResult' + qIdx);
+        if (!input || !resultEl) return;
+
+        const userVal = (input.value || '').trim();
+        if (!userVal) {
+            input.focus();
+            input.classList.add('fill-shake');
+            setTimeout(() => input.classList.remove('fill-shake'), 500);
+            return;
+        }
+
+        const correctAns = correctAnswers[qIdx].answer;
+        const isCorrect = userVal.toLowerCase() === correctAns.toLowerCase();
+        userAnswers[qIdx] = userVal;
+
+        const wrapper = input.closest('.fill-input-wrapper');
+        wrapper.classList.remove('checked-correct', 'checked-wrong');
+        input.classList.remove('fill-correct', 'fill-wrong');
+
+        if (isCorrect) {
+            input.classList.add('fill-correct');
+            wrapper.classList.add('checked-correct');
+            resultEl.innerHTML = '✅ <strong>Chính xác!</strong> Giỏi lắm! 🎉';
+            resultEl.className = 'fill-result fill-result-correct';
+            AudioManager.playCorrect();
+            const rect = input.getBoundingClientRect();
+            createStarBurst(rect.left + rect.width/2, rect.top, '🌟');
+        } else {
+            input.classList.add('fill-wrong');
+            wrapper.classList.add('checked-wrong');
+            resultEl.innerHTML = `❌ Chưa đúng! Đáp án: <strong>${correctAns}</strong>`;
+            resultEl.className = 'fill-result fill-result-wrong';
+            AudioManager.playWrong();
+        }
+        resultEl.style.display = 'block';
+        updateProgress();
+    }
+
+    function showQuestion(idx) {
+        document.querySelectorAll('.question-card').forEach(q => q.classList.remove('active'));
+        document.getElementById('q' + idx).classList.add('active');
+        currentQuestion = idx;
+
+        // Cập nhật nút
+        document.getElementById('prevBtn').disabled = (idx === 0);
+        if (idx === totalQuestions - 1) {
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'inline-flex';
+        } else {
+            document.getElementById('nextBtn').style.display = 'inline-flex';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+
+        document.getElementById('progressText').textContent = `Câu ${idx + 1} / ${totalQuestions}`;
+    }
+
+    function nextQuestion() {
+        if (currentQuestion < totalQuestions - 1) {
+            AudioManager.playNext();
+            showQuestion(currentQuestion + 1);
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestion > 0) {
+            AudioManager.playNext();
+            showQuestion(currentQuestion - 1);
+        }
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(a => a !== null).length;
+        const pct = (answered / totalQuestions) * 100;
+        document.getElementById('progressBar').style.width = pct + '%';
+    }
+
+    function submitQuiz() {
+        // Kiểm tra đã trả lời hết chưa
+        const unanswered = userAnswers.filter(a => a === null).length;
+        if (unanswered > 0) {
+            if (!confirm(`Bạn còn ${unanswered} câu chưa trả lời. Vẫn muốn nộp bài?`)) {
+                return;
+            }
+        }
+
+        AudioManager.playSubmit();
+
+        fetch("{{ url_for('check_answers') }}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({answers: userAnswers})
+        })
+        .then(res => res.json())
+        .then(data => {
+            showResult(data);
+        });
+    }
+
+    function showResult(data) {
+        const modal = document.getElementById('resultModal');
+        const score = data.score;
+        const total = data.total;
+        const pct = data.percentage;
+
+        // Hiệu ứng âm thanh theo điểm số
+        if (pct >= 80) {
+            AudioManager.playCelebrate();
+            createConfetti(60);
+        } else if (pct >= 60) {
+            AudioManager.playCorrect();
+            createConfetti(30);
+        } else {
+            AudioManager.playWrong();
+        }
+
+        // Hiệu ứng popup điểm
+        showScorePopup(`${score}/${total}`);
+
+        // Header emoji based on score
+        let emoji, message;
+        if (pct === 100) {
+            emoji = "🏆";
+            message = "Xuất sắc! Con giỏi lắm! 🎉";
+        } else if (pct >= 80) {
+            emoji = "🌟";
+            message = "Tuyệt vời! Con làm rất tốt! 👏";
+        } else if (pct >= 60) {
+            emoji = "😊";
+            message = "Khá lắm! Cố gắng thêm nhé! 💪";
+        } else if (pct >= 40) {
+            emoji = "📝";
+            message = "Hãy luyện tập thêm nha! 📖";
+        } else {
+            emoji = "💪";
+            message = "Không sao, hãy làm lại nhé! 🌈";
+        }
+
+        // Delay modal hiển thị để xem confetti
+        setTimeout(() => {
+            document.getElementById('resultHeader').innerHTML = `<span style="font-size:4em;">${emoji}</span>`;
+            document.getElementById('resultScore').innerHTML = `<span class="score-number">${score}</span> / <span class="score-total">${total}</span>`;
+            document.getElementById('resultMessage').innerHTML = message;
+
+            // Stars with animation delay
+            let stars = '';
+            const starCount = Math.round(pct / 20);
+            for (let i = 0; i < 5; i++) {
+                const s = i < starCount ? '⭐' : '☆';
+                stars += `<span style="display:inline-block;animation-delay:${i * 0.15}s;animation:starAppear 0.4s ease ${i * 0.15}s forwards;opacity:0;font-size:2em;">${s}</span>`;
+            }
+            document.getElementById('resultStars').innerHTML = stars;
+
+            // Details with staggered animation
+            let details = '<div class="details-list">';
+            data.results.forEach((r, idx) => {
+                const icon = r.is_correct ? '✅' : '❌';
+                details += `<div class="detail-item ${r.is_correct ? 'correct' : 'wrong'}" style="animation-delay:${idx * 0.08}s">
+                    <span>${icon} Câu ${r.question_num}</span>
+                    ${!r.is_correct ? `<span class="correct-answer">Đáp án: ${r.correct_answer}</span>` : ''}
+                </div>`;
+            });
+            details += '</div>';
+            document.getElementById('resultDetails').innerHTML = details;
+
+            modal.style.display = 'flex';
+
+            // Highlight correct/wrong choices on question cards
+            data.results.forEach((r, idx) => {
+                const btns = document.querySelectorAll(`.choice-btn[data-question="${idx}"]`);
+                btns.forEach(b => {
+                    if (b.dataset.value === r.correct_answer) {
+                        b.classList.add('correct-answer');
+                    }
+                    if (b.classList.contains('selected') && !r.is_correct) {
+                        b.classList.add('wrong-answer');
+                    }
+                });
+                // Highlight fill-in inputs
+                const fillInput = document.querySelector(`.fill-input[data-question="${idx}"]`);
+                if (fillInput) {
+                    fillInput.disabled = true;
+                    if (r.is_correct) {
+                        fillInput.classList.add('fill-correct');
+                    } else {
+                        fillInput.classList.add('fill-wrong');
+                        const wrapper = fillInput.closest('.fill-input-area');
+                        if (wrapper) {
+                            const hint = document.createElement('div');
+                            hint.className = 'fill-correct-answer';
+                            hint.innerHTML = `✅ Đáp án đúng: <strong>${r.correct_answer}</strong>`;
+                            wrapper.appendChild(hint);
+                        }
+                    }
+                }
+            });
+        }, pct >= 80 ? 800 : 300);
+    }
+</script>
+{% endblock %}

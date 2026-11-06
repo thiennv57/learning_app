@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Trang Chủ{% endblock %}
+
+{% block content %}
+<div class="features-section">
+    <div style="margin-bottom:32px">
+        <h2 style="text-align:center;font-size:1.4em;font-weight:900;margin-bottom:16px">⚔️ Game Nhiều Người Chơi</h2>
+        <a href="{{ url_for('attack_defense_home') }}" style="display:block;background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #f0c050;border-radius:16px;padding:24px 28px;text-decoration:none;color:inherit;transition:.2s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(240,192,80,.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <div style="font-size:2.5em;margin-bottom:8px">⚔️🛡️</div>
+            <div style="font-size:1.3em;font-weight:900;color:#f0c050;margin-bottom:6px">Attack & Defense</div>
+            <div style="color:#8b949e;font-size:.95em;line-height:1.5">Game chiến thuật nhiều người chơi — trả lời đúng để nhận kỹ năng tấn công, phòng thủ và tranh đoạt HP pháo đài!<br><span style="color:#58a6ff;font-size:.85em">👑 Dành cho Giáo Viên / Quản Trị →</span></div>
+        </a>
+    </div>
+
+    <div style="margin-bottom:32px">
+        <a href="{{ url_for('team_battle_home') }}" style="display:block;background:linear-gradient(135deg,#1b2a3a,#16213e);border:2px solid #58a6ff;border-radius:16px;padding:24px 28px;text-decoration:none;color:inherit;transition:.2s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(88,166,255,.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <div style="font-size:2.5em;margin-bottom:8px">🛡️👥</div>
+            <div style="font-size:1.3em;font-weight:900;color:#58a6ff;margin-bottom:6px">Đấu Trường Đồng Đội</div>
+            <div style="color:#8b949e;font-size:.95em;line-height:1.5">Chia đội ngẫu nhiên khi bắt đầu — HP đội bằng tổng HP thành viên, tấn công vào từng người của đội bạn, xếp hạng theo đội!<br><span style="color:#58a6ff;font-size:.85em">👑 Dành cho Giáo Viên / Quản Trị →</span></div>
+        </a>
+    </div>
+
+    <div style="margin-bottom:32px">
+        <a href="{{ url_for('question_sets_manage') }}" style="display:block;background:linear-gradient(135deg,#2d5016,#3d6b1f);border:2px solid #52d273;border-radius:16px;padding:24px 28px;text-decoration:none;color:inherit;transition:.2s" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(82,210,115,.25)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <div style="font-size:2.5em;margin-bottom:8px">📋📤</div>
+            <div style="font-size:1.3em;font-weight:900;color:#52d273;margin-bottom:6px">Quản Lý Bộ Câu Hỏi</div>
+            <div style="color:#8b949e;font-size:.95em;line-height:1.5">Upload file CSV để tạo các bộ câu hỏi cho các đợt thi, mỗi bộ có thể gồm bất kỳ số lượng câu hỏi<br><span style="color:#58a6ff;font-size:.85em">📚 Dành cho Giáo Viên / Quản Trị →</span></div>
+        </a>
+    </div>
+
+    <h2 class="features-title">🎯 Tính năng nổi bật</h2>
+    <div class="features-grid">
+        <div class="feature-card">
+            <span class="feature-icon">🎮</span>
+            <h3>Học mà chơi</h3>
+            <p>Bài tập vui nhộn, sinh động với hình ảnh và emoji dễ thương</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">📊</span>
+            <h3>Chấm điểm ngay</h3>
+            <p>Biết kết quả ngay sau khi làm bài, có giải thích đáp án</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">🔄</span>
+            <h3>Luyện tập nhiều lần</h3>
+            <p>Đề bài ngẫu nhiên mỗi lần, luyện tập không bao giờ chán</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">📱</span>
+            <h3>Dùng trên mọi thiết bị</h3>
+            <p>Máy tính, tablet, điện thoại đều sử dụng được</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

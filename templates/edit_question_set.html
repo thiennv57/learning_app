@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}✏️ Chỉnh sửa - {{ question_set.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  body { background: #f5f5f5; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+  .header h1 { margin: 0; font-size: 1.8em; }
+  
+  .editor-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  
+  /* LEFT: Editor */
+  .editor-panel { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .editor-panel h2 { color: #667eea; margin-top: 0; }
+  
+  .question-form {
+    background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    display: block; font-weight: 600; color: #333; margin-bottom: 4px; font-size: 0.9em;
+  }
+  
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em; font-family: inherit;
+  }
+  
+  .form-group textarea { min-height: 60px; resize: vertical; }
+  
+  .image-tools {
+    display: flex; gap: 6px; margin-bottom: 8px; margin-top: 4px;
+  }
+  
+  .image-tools .btn {
+    flex: 1; padding: 6px 10px; font-size: 0.85em; 
+  }
+  
+  .image-tools input[type="file"] { display: none; }
+  
+  .paste-hint {
+    font-size: 0.75em; color: #8b949e; margin-top: 4px;
+  }
+  
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  
+  .option-group {
+    border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; background: white;
+  }
+  
+  .option-group label {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 4px; cursor: pointer;
+  }
+  
+  .option-group input[type="radio"] {
+    width: auto; margin: 0;
+  }
+  
+  .option-group input[type="text"] {
+    width: 100%; padding: 6px; font-size: 0.85em;
+  }
+  
+  .btn-group {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  
+  .btn {
+    flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9em;
+  }
+  
+  .btn-primary { background: #667eea; color: white; }
+  .btn-primary:hover { background: #5568d3; }
+  
+  .btn-danger { background: #e74c3c; color: white; }
+  .btn-danger:hover { background: #c0392b; }
+  
+  .btn-success { background: #27ae60; color: white; }
+  .btn-success:hover { background: #229954; }
+  
+  .btn-secondary { background: #6c757d; color: white; }
+  .btn-secondary:hover { background: #5a6268; }
+  
+  .btn-block { display: block; width: 100%; }
+  
+  /* RIGHT: Preview */
+  .preview-panel {
+    background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 20px;
+  }
+  
+  .preview-panel h2 { color: #667eea; margin-top: 0; }
+  
+  .preview-item {
+    background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 10px;
+  }
+  
+  .preview-q { font-weight: 600; color: #333; margin-bottom: 8px; font-size: 0.95em; }
+  
+  .preview-options { display: grid; gap: 6px; }
+  
+  .preview-opt {
+    padding: 6px; border: 1px solid #e0e0e0; border-radius: 4px; background: white; font-size: 0.85em;
+  }
+  
+  .preview-opt.answer { background: #d4edda; border-color: #28a745; color: #155724; }
+  .preview-opt.answer::after { content: " ✓"; font-weight: bold; }
+  
+  .preview-empty { color: #8b949e; font-style: italic; text-align: center; padding: 20px; }
+  
+  .nav-buttons { display: flex; gap: 10px; margin-top: 20px; }
+  
+  .nav-buttons .btn { flex: 1; }
+  
+  @media (max-width: 1200px) {
+    .editor-wrap { grid-template-columns: 1fr; }
+    .preview-panel { position: static; }
+  }
+  
+  .q-index { color: #667eea; font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="header">
+    <h1>✏️ Chỉnh sửa: {{ question_set.name }}</h1>
+  </div>
+  
+  <div class="editor-wrap">
+    <!-- LEFT: Editor -->
+    <div class="editor-panel">
+      <h2>📝 Chỉnh sửa câu hỏi</h2>
+      
+      <form id="editor-form" method="POST" action="{{ url_for('update_question_set', set_id=question_set.id) }}">
+        <div id="questions-container"></div>
+        
+        <button type="button" class="btn btn-primary btn-block" onclick="addQuestion()">
+          ➕ Thêm câu hỏi
+        </button>
+        
+        <div class="nav-buttons">
+          <button type="submit" class="btn btn-success">💾 Lưu thay đổi</button>
+          <a href="{{ url_for('view_question_set', set_id=question_set.id) }}" class="btn btn-secondary">❌ Hủy</a>
+        </div>
+      </form>
+    </div>
+    
+    <!-- RIGHT: Preview -->
+    <div class="preview-panel">
+      <h2>👁️ Xem trước</h2>
+      <div id="preview-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let questions = JSON.parse('{{ question_set.questions | tojson | safe }}');
+
+// Image handling functions
+function handleImageUpload(idx, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    insertImageIntoQuestion(idx, base64);
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+function insertImageIntoQuestion(idx, base64) {
+  const textarea = document.querySelector(`textarea[name="question_${idx}"]`);
+  const imgHtml = `<img src="${base64}" alt="image" style="max-width:100%;height:auto;border-radius:6px;margin:8px 0">`;
+  textarea.value += '\n' + imgHtml;
+  renderPreview();
+}
+
+function pasteImage(idx) {
+  const textarea = document.querySelector(`textarea[name="question_${idx}"]`);
+  textarea.focus();
+  
+  // Listen for paste event
+  const handlePaste = (e) => {
+    const items = (e.clipboardData || window.clipboardData).items;
+    
+    for (let item of items) {
+      if (item.type.startsWith("image/")) {
+        const blob = item.getAsFile();
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          insertImageIntoQuestion(idx, event.target.result);
+          textarea.removeEventListener('paste', handlePaste);
+        };
+        reader.readAsDataURL(blob);
+        e.preventDefault();
+        return;
+      }
+    }
+    alert("⚠️ Clipboard không có ảnh. Copy ảnh trước rồi paste nhé!");
+    textarea.removeEventListener('paste', handlePaste);
+  };
+  
+  textarea.addEventListener('paste', handlePaste);
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  
+  questions.forEach((q, idx) => {
+    const div = document.createElement('div');
+    div.className = 'question-form';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong><span class="q-index">Câu ${idx + 1}</span></strong>
+        <button type="button" class="btn btn-danger" style="width:auto;padding:4px 12px;font-size:0.85em" onclick="deleteQuestion(${idx})">🗑️ Xóa</button>
+      </div>
+      
+      <div class="form-group">
+        <label>📋 Nội dung câu hỏi</label>
+        <textarea name="question_${idx}" onchange="renderPreview()">${q.question}</textarea>
+        <div class="image-tools">
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('img_${idx}_upload').click()">🖼️ Upload ảnh</button>
+          <button type="button" class="btn btn-primary" onclick="pasteImage(${idx})">📋 Paste ảnh</button>
+          <input type="file" id="img_${idx}_upload" accept="image/*" onchange="handleImageUpload(${idx}, this)">
+        </div>
+        <div class="paste-hint">💡 Paste: Copy ảnh → Click nút → Ctrl+V vào ô text</div>
+      </div>
+      
+      <div style="font-size:0.9em;color:#666;margin-bottom:10px">📚 Các lựa chọn:</div>
+      <div class="options-grid">
+        ${['a', 'b', 'c', 'd'].map(opt => `
+          <div class="option-group">
+            <label>
+              <input type="radio" name="answer_${idx}" value="${opt}" ${q.answer === opt ? 'checked' : ''} onchange="renderPreview()">
+              <strong>${opt.toUpperCase()})</strong>
+            </label>
+            <input type="text" name="option_${idx}_${opt}" value="${q.options[opt]}" onchange="renderPreview()" placeholder="Nội dung ${opt.toUpperCase()}">
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+  
+  renderPreview();
+}
+
+function addQuestion() {
+  questions.push({
+    question: "Câu hỏi mới",
+    options: { a: "Option A", b: "Option B", c: "Option C", d: "Option D" },
+    answer: "a"
+  });
+  renderQuestions();
+}
+
+function deleteQuestion(idx) {
+  if (confirm(`Bạn chắc chắn muốn xóa câu ${idx + 1}?`)) {
+    questions.splice(idx, 1);
+    renderQuestions();
+  }
+}
+
+function renderPreview() {
+  const preview = document.getElementById('preview-container');
+  const form = document.getElementById('editor-form');
+  
+  // Rebuild questions from form
+  const updatedQuestions = [];
+  questions.forEach((_, idx) => {
+    const question = form.querySelector(`textarea[name="question_${idx}"]`).value;
+    const answer = form.querySelector(`input[name="answer_${idx}"]:checked`).value;
+    const options = {};
+    ['a', 'b', 'c', 'd'].forEach(opt => {
+      options[opt] = form.querySelector(`input[name="option_${idx}_${opt}"]`).value;
+    });
+    updatedQuestions.push({ question, options, answer });
+  });
+  
+  if (updatedQuestions.length === 0) {
+    preview.innerHTML = '<div class="preview-empty">Chưa có câu hỏi nào</div>';
+    return;
+  }
+  
+  preview.innerHTML = updatedQuestions.map((q, idx) => {
+    const questionHTML = q.question.includes('<img') ? q.question : `<span class="q-index">Câu ${idx + 1}</span>: ${q.question || '(trống)'}`;
+    return `
+    <div class="preview-item">
+      <div class="preview-q">${questionHTML}</div>
+      <div class="preview-options">
+        ${['a', 'b', 'c', 'd'].map(opt => `
+          <div class="preview-opt ${q.answer === opt ? 'answer' : ''}">
+            <strong>${opt.toUpperCase()})</strong> ${q.options[opt] || '(trống)'}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+// Save questions back to form before submit
+document.getElementById('editor-form').addEventListener('submit', function(e) {
+  const form = this;
+  questions.forEach((_, idx) => {
+    const question = form.querySelector(`textarea[name="question_${idx}"]`).value;
+    const answer = form.querySelector(`input[name="answer_${idx}"]:checked`).value;
+    const options = {};
+    ['a', 'b', 'c', 'd'].forEach(opt => {
+      options[opt] = form.querySelector(`input[name="option_${idx}_${opt}"]`).value;
+    });
+    questions[idx] = { question, options, answer };
+  });
+  
+  // Add hidden input with JSON
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'questions_json';
+  input.value = JSON.stringify(questions);
+  form.appendChild(input);
+});
+
+// Initial render
+renderQuestions();
+</script>
+{% endblock %}

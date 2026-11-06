@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Học từ vựng - {{ topic.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">🏠 Trang chủ</a>
+    <span>›</span>
+    <a href="{{ url_for('subject', subject_id=subject_id) }}">{{ subject.icon }} {{ subject.name }}</a>
+    <span>›</span>
+    <span>🃏 {{ topic.name }}</span>
+</div>
+
+<div class="exercise-header" style="--card-color: {{ subject.color }}">
+    <h1>🃏 Học từ vựng: {{ topic.name }}</h1>
+    <p>Nhấn vào thẻ để lật xem nghĩa!</p>
+</div>
+
+<div class="flashcards-container">
+    <div class="flashcard-nav">
+        <button class="btn btn-secondary" id="fcPrev" onclick="prevCard()">⬅️ Trước</button>
+        <span class="flashcard-counter" id="fcCounter">1 / {{ words|length }}</span>
+        <button class="btn btn-secondary" id="fcNext" onclick="nextCard()">Tiếp ➡️</button>
+    </div>
+
+    <div class="flashcards-wrapper" id="flashcardsWrapper">
+        {% for word in words %}
+        <div class="flashcard {% if loop.first %}active{% endif %}" data-idx="{{ loop.index0 }}" onclick="flipCard(this)">
+            <div class="flashcard-inner">
+                <div class="flashcard-front">
+                    {% if word.emoji is defined and word.emoji %}
+                    <div class="fc-emoji">{{ word.emoji }}</div>
+                    {% endif %}
+                    <div class="fc-word">{{ word.en }}</div>
+                    <p class="fc-hint">Nhấn để xem nghĩa</p>
+                </div>
+                <div class="flashcard-back">
+                    {% if word.emoji is defined and word.emoji %}
+                    <div class="fc-emoji">{{ word.emoji }}</div>
+                    {% endif %}
+                    <div class="fc-word">{{ word.en }}</div>
+                    <div class="fc-meaning">{{ word.vn }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="flashcard-actions">
+    <a href="{{ url_for('exercise', subject_id=subject_id, topic_id=topic_id) }}" class="btn btn-primary">✏️ Làm bài tập</a>
+    <a href="{{ url_for('subject', subject_id=subject_id) }}" class="btn btn-secondary">📋 Chọn bài khác</a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const totalCards = {{ words|length }};
+    let currentCard = 0;
+
+    function flipCard(card) {
+        card.classList.toggle('flipped');
+    }
+
+    function showCard(idx) {
+        document.querySelectorAll('.flashcard').forEach(c => {
+            c.classList.remove('active', 'flipped');
+        });
+        const cards = document.querySelectorAll('.flashcard');
+        if (cards[idx]) {
+            cards[idx].classList.add('active');
+        }
+        currentCard = idx;
+        document.getElementById('fcCounter').textContent = `${idx + 1} / ${totalCards}`;
+    }
+
+    function nextCard() {
+        if (currentCard < totalCards - 1) {
+            showCard(currentCard + 1);
+        }
+    }
+
+    function prevCard() {
+        if (currentCard > 0) {
+            showCard(currentCard - 1);
+        }
+    }
+</script>
+{% endblock %}

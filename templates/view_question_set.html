@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ question_set.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+  .header h1 { margin: 0 0 5px; }
+  .header-meta { font-size: 0.95em; opacity: 0.9; }
+  
+  .question-item {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .question-number { color: #667eea; font-weight: bold; font-size: 1.1em; }
+  .question-text { margin: 10px 0 15px; font-size: 1.05em; color: #333; }
+  
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+  .option {
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #f9f9f9;
+  }
+  .option.answer { background: #d4edda; border-color: #28a745; }
+  .option-key { font-weight: bold; color: #667eea; }
+  
+  .check-icon { color: #28a745; font-weight: bold; }
+  
+  .actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; text-decoration: none; }
+  .btn-primary { background: #667eea; color: white; }
+  .btn-primary:hover { background: #5568d3; }
+  .btn-secondary { background: #6c757d; color: white; }
+  .btn-secondary:hover { background: #5a6268; }
+  
+  .summary {
+    background: #f0f7ff;
+    border-left: 4px solid #667eea;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .summary strong { color: #667eea; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="header">
+    <h1>📚 {{ question_set.name }}</h1>
+    <div class="header-meta">
+      📌 {{ question_set.subject|upper }} | 
+      ❔ {{ question_set.total_questions }} câu hỏi | 
+      📅 {{ question_set.created_at[:10] }}
+    </div>
+  </div>
+  
+  <div class="summary">
+    <strong>📋 Tóm tắt:</strong> Bộ câu hỏi này gồm {{ question_set.total_questions }} câu hỏi trắc nghiệm 4 lựa chọn
+    (A, B, C, D) cho môn {{ question_set.subject|upper }}, được tạo ngày {{ question_set.created_at[:10] }}.
+  </div>
+  
+  <!-- Danh sách câu hỏi -->
+  {% for question in question_set.questions %}
+    <div class="question-item">
+      <div class="question-number">Câu {{ loop.index }}:</div>
+      <div class="question-text">{{ question.question }}</div>
+      
+      <div class="options">
+        <div class="option {% if question.answer == 'a' %}answer{% endif %}">
+          <div><span class="option-key">A)</span> {{ question.options.a }}
+          {% if question.answer == 'a' %}<span class="check-icon"> ✓</span>{% endif %}</div>
+        </div>
+        <div class="option {% if question.answer == 'b' %}answer{% endif %}">
+          <div><span class="option-key">B)</span> {{ question.options.b }}
+          {% if question.answer == 'b' %}<span class="check-icon"> ✓</span>{% endif %}</div>
+        </div>
+        <div class="option {% if question.answer == 'c' %}answer{% endif %}">
+          <div><span class="option-key">C)</span> {{ question.options.c }}
+          {% if question.answer == 'c' %}<span class="check-icon"> ✓</span>{% endif %}</div>
+        </div>
+        <div class="option {% if question.answer == 'd' %}answer{% endif %}">
+          <div><span class="option-key">D)</span> {{ question.options.d }}
+          {% if question.answer == 'd' %}<span class="check-icon"> ✓</span>{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  
+  <div class="actions">
+    <a href="{{ url_for('edit_question_set', set_id=question_set.id) }}" class="btn btn-primary">✏️ Chỉnh sửa</a>
+    <a href="{{ url_for('question_sets_manage') }}" class="btn btn-secondary">← Quay Lại Danh Sách</a>
+  </div>
+</div>
+{% endblock %}

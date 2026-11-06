@@ -1,0 +1,26 @@
+<svg viewBox="0 0 90 165" xmlns="http://www.w3.org/2000/svg">
+<defs>
+    <linearGradient id="jBody" x1="0" y1="0" x2=".6" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="70%" stop-color="#ddd"/></linearGradient>
+    <linearGradient id="sock" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#e8e8e8"/></linearGradient>
+    <linearGradient id="boot" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#222"/><stop offset="100%" stop-color="#0a0a0a"/></linearGradient>
+</defs>
+<ellipse cx="45" cy="162" rx="32" ry="4" fill="rgba(0,0,0,.18)"/>
+<path d="M28 155 Q22 155 20 157 Q18 160 22 162 L38 162 Q40 160 38 157 Q36 155 32 155Z" fill="url(#boot)"/>
+<path d="M52 155 Q48 155 46 157 Q44 160 46 162 L62 162 Q64 160 64 157 Q62 155 58 155Z" fill="url(#boot)"/>
+<path d="M25 123 Q23 123 23 126 L22 153 Q22 156 26 156 L36 156 Q38 156 38 153 L37 126 Q37 123 35 123Z" fill="url(#sock)"/>
+<path d="M49 123 Q47 123 47 126 L46 153 Q46 156 50 156 L60 156 Q62 156 62 153 L61 126 Q61 123 59 123Z" fill="url(#sock)"/>
+<path d="M26 100 Q24 106 25 115 Q26 124 30 124 Q34 124 35 115 Q36 106 34 100Z" fill="#FDBF60"/>
+<path d="M50 100 Q48 106 49 115 Q50 124 54 124 Q58 124 59 115 Q60 106 58 100Z" fill="#FDBF60"/>
+<path d="M22 75 Q20 77 21 88 Q24 96 35 96 Q42 96 45 93 L45 93 Q48 96 55 96 Q66 96 69 88 Q70 77 68 75Z" fill="#00237A"/>
+<path d="M18 38 Q16 40 17 72 Q18 76 45 76 Q72 76 73 72 Q74 40 72 38Z" fill="url(#jBody)"/>
+<text x="45" y="69" text-anchor="middle" fill="#111" font-size="17" font-weight="900" font-family="Arial">10</text>
+<path d="M36 35 L45 42 L54 35" stroke="rgba(0,0,0,.2)" stroke-width="1.5" fill="none"/>
+<path d="M8 40 Q6 42 7 56 Q8 58 14 58 L18 58 L18 40Z" fill="#ddd"/>
+<path d="M82 40 Q84 42 83 56 Q82 58 76 58 L72 58 L72 40Z" fill="#ddd"/>
+<path d="M8 56 Q6 60 7 72 Q8 76 12 76 Q16 76 16 72 Q17 60 15 56Z" fill="#FDBF60"/>
+<path d="M75 56 Q73 60 74 72 Q75 76 78 76 Q82 76 82 72 Q83 60 82 56Z" fill="#FDBF60"/>
+<path d="M37 27 Q37 32 38 37 L52 37 Q53 32 53 27Z" fill="#FDBF60"/>
+<ellipse cx="45" cy="18" rx="17" ry="18" fill="#1a1a1a"/>
+<ellipse cx="28" cy="20" rx="3.5" ry="5.5" fill="#FDBF60"/>
+<ellipse cx="62" cy="20" rx="3.5" ry="5.5" fill="#FDBF60"/>
+</svg>

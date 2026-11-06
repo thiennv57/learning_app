@@ -1,0 +1,36 @@
+<svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg">
+<defs>
+    <linearGradient id="gkJ" x1="0" y1="0" x2=".4" y2="1"><stop offset="0%" stop-color="#FF69B4"/><stop offset="100%" stop-color="#E84393"/></linearGradient>
+    <linearGradient id="gkGlove" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00E676"/><stop offset="100%" stop-color="#00C853"/></linearGradient>
+    <linearGradient id="gkSkin" x1=".3" y1="0" x2=".7" y2="1"><stop offset="0%" stop-color="#FDEBD0"/><stop offset="100%" stop-color="#FDBF60"/></linearGradient>
+    <radialGradient id="gkHair" cx=".5" cy=".3" r=".6"><stop offset="0%" stop-color="#7B5230"/><stop offset="100%" stop-color="#5C3A1E"/></radialGradient>
+</defs>
+<ellipse cx="50" cy="127" rx="30" ry="4" fill="rgba(0,0,0,.2)"/>
+<path d="M32 120 Q26 120 24 122 Q22 124 26 126 L42 126 Q44 124 42 122 Q40 120 36 120Z" fill="#111"/>
+<path d="M58 120 Q54 120 52 122 Q50 124 52 126 L68 126 Q70 124 70 122 Q68 120 64 120Z" fill="#111"/>
+<path d="M30 100 Q28 100 28 103 L27 118 Q27 121 31 121 L41 121 Q43 121 43 118 L42 103 Q42 100 40 100Z" fill="#222"/>
+<path d="M56 100 Q54 100 54 103 L53 118 Q53 121 57 121 L67 121 Q69 121 69 118 L68 103 Q68 100 66 100Z" fill="#222"/>
+<path d="M32 86 Q30 90 30 97 Q31 101 35 101 Q39 101 40 97 Q40 90 38 86Z" fill="url(#gkSkin)"/>
+<path d="M56 86 Q54 90 54 97 Q55 101 59 101 Q63 101 64 97 Q64 90 62 86Z" fill="url(#gkSkin)"/>
+<path d="M28 72 Q26 74 27 85 Q32 90 50 90 Q68 90 73 85 Q74 74 72 72Z" fill="#111"/>
+<path d="M20 38 Q18 40 19 70 Q24 75 50 75 Q76 75 81 70 Q82 40 80 38Z" fill="url(#gkJ)"/>
+<text x="50" y="62" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="16" font-weight="900" font-family="Arial">1</text>
+<path d="M42 37 L50 43 L58 37" stroke="rgba(255,255,255,.35)" stroke-width="1.5" fill="none"/>
+<path d="M10 40 Q8 42 9 55 Q10 58 16 58 L20 58 L20 40Z" fill="#E84393"/>
+<path d="M90 40 Q92 42 91 55 Q90 58 84 58 L80 58 L80 40Z" fill="#E84393"/>
+<path d="M20 40 Q14 34 8 24" stroke="#FF69B4" stroke-width="7" stroke-linecap="round" fill="none"/>
+<path d="M80 40 Q86 34 92 24" stroke="#FF69B4" stroke-width="7" stroke-linecap="round" fill="none"/>
+<path d="M8 24 Q4 18 2 12" stroke="url(#gkSkin)" stroke-width="6" stroke-linecap="round" fill="none"/>
+<path d="M92 24 Q96 18 98 12" stroke="url(#gkSkin)" stroke-width="6" stroke-linecap="round" fill="none"/>
+<ellipse cx="1" cy="10" rx="7" ry="8" fill="url(#gkGlove)"/>
+<ellipse cx="99" cy="10" rx="7" ry="8" fill="url(#gkGlove)"/>
+<path d="M42 33 Q42 36 43 40 L57 40 Q58 36 58 33Z" fill="url(#gkSkin)"/>
+<ellipse cx="50" cy="24" rx="18" ry="20" fill="url(#gkSkin)"/>
+<ellipse cx="50" cy="10" rx="18" ry="14" fill="url(#gkHair)"/>
+<path d="M32 16 Q38 6 50 3 Q62 6 68 16" fill="url(#gkHair)"/>
+<circle cx="43" cy="24" r="2.5" fill="#fff"/><circle cx="57" cy="24" r="2.5" fill="#fff"/>
+<circle cx="43" cy="24" r="1.5" fill="#333"/><circle cx="57" cy="24" r="1.5" fill="#333"/>
+<path d="M45 30 Q50 33 55 30" stroke="#c0392b" stroke-width="1.2" fill="none"/>
+<ellipse cx="32" cy="24" rx="3" ry="5" fill="url(#gkSkin)"/>
+<ellipse cx="68" cy="24" rx="3" ry="5" fill="url(#gkSkin)"/>
+</svg>

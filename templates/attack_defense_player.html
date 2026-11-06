@@ -1,0 +1,988 @@
+{% extends "base.html" %}
+{% block title %}⚔️ Attack & Defense – Người Chơi{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="window._katexReady=true"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/battle.css') }}">
+<script src="{{ url_for('static', filename='js/vendor/gsap.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-animals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-hero.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-anim.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-arena.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="result-overlay" id="result-overlay"><div class="result-pop" id="result-pop"></div></div>
+<div class="delay-overlay" id="delay-overlay">
+  <div class="delay-card">
+    <div class="delay-icon">⏳</div>
+    <div class="delay-title">Câu hỏi của bạn sẽ hiển thị sau:</div>
+    <div class="delay-count" id="delay-count">--</div>
+    <div class="delay-reason-label">Lý do</div>
+    <div class="delay-reason" id="delay-reason"></div>
+  </div>
+</div>
+<div class="pause-overlay" id="pause-overlay"><div class="pause-inner">⏸️<div>Đã tạm dừng</div></div></div>
+<div class="p-wrap">
+  <div class="p-title">⚔️ Attack &amp; Defense</div>
+  <div class="p-sub">Phòng: <strong id="room-id-label">{{ room_id }}</strong></div>
+
+  <!-- SEC 1: Join form -->
+  <div id="sec-join" class="section active">
+    <div class="card">
+      <div class="card-title">👤 Nhập tên của bạn</div>
+      <div id="join-error" class="alert alert-error" style="display:none"></div>
+      
+      <div class="form-group">
+        <label class="form-label">Tên người chơi:</label>
+        <input 
+          type="text" 
+          class="form-input" 
+          id="player-name-input" 
+          placeholder="Nhập tên của bạn..." 
+          maxlength="30"
+          onkeypress="handleNameKeyPress(event)"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Chọn nhân vật:</label>
+        <div class="animal-picker" id="animal-picker"></div>
+      </div>
+
+      <button class="btn btn-primary" onclick="confirmAndJoin()" id="btn-join-confirm">✅ Tham gia trò chơi</button>
+    </div>
+  </div>
+
+  <!-- SEC 2: Lobby waiting -->
+  <div id="sec-lobby" class="section">
+    <div class="card">
+      <div class="lobby-status">
+        <div class="ls-icon">⏳</div>
+        <div class="ls-name" id="lb-my-name"></div>
+        <div class="ls-sub">Bạn đã sẵn sàng! Chờ giáo viên bắt đầu…</div>
+        <div class="ls-players" id="lb-players"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 3: Playing -->
+  <div id="sec-play" class="section">
+
+    <!-- My HP -->
+    <div class="card" id="my-hp-card">
+      <div class="my-hero">
+        <div class="my-hero-fig" id="my-hero-fig"></div>
+        <div class="my-hero-main">
+          <div class="my-hero-top">
+            <span class="my-hero-name" id="my-name-hp"></span>
+            <span><span class="hp-val" id="my-hp-val">100</span><span class="my-hero-unit">điểm</span></span>
+          </div>
+          <div class="my-hp-bar-bg">
+            <div class="my-hp-bar high" id="my-hp-bar" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="my-hp-row">
+        <span>Câu hỏi: <strong id="q-idx-label">1</strong> / <strong id="q-total-label">?</strong></span>
+        <span id="round-phase-label" style="color:#6FE3FF;font-weight:700"></span>
+      </div>
+    </div>
+
+    <!-- Opponents -->
+    <div class="card">
+      <div class="card-title">👥 Đối thủ</div>
+      <div class="opp-grid" id="opp-grid"></div>
+    </div>
+
+    <!-- Question phase -->
+    <div id="phase-question" class="card" style="display:none">
+      <div class="card-title">❓ Câu hỏi</div>
+      <div class="double-banner" id="double-banner" style="display:none">⚡ VÒNG NHÂN ĐÔI ĐIỂM ⚡</div>
+      <!-- Countdown timer -->
+      <div class="q-timer-wrap" id="q-timer-wrap" style="display:none">
+        <div class="q-timer-row">
+          <div class="q-timer-bg"><div class="q-timer-fill high" id="q-timer-fill" style="width:100%"></div></div>
+          <div class="q-timer-secs" id="q-timer-secs" style="color:#4FE0A6">--</div>
+        </div>
+      </div>
+      <div class="q-text" id="play-q-text"></div>
+      <div class="q-options" id="play-q-opts"></div>
+      <div id="answer-result" style="display:none" class="answer-result"></div>
+      <div id="skill-gained-box" class="skill-gained" style="display:none"></div>
+    </div>
+
+    <!-- Skill selection phase -->
+    <div id="phase-skill" class="card" style="display:none">
+      <div class="card-title">🎯 Chọn kỹ năng sử dụng</div>
+      <div class="skill-title">🎁 Chọn 1 trong 3 kỹ năng bên dưới:</div>
+
+      <div class="my-skills-list" id="my-skills-list">
+        <div style="color:#938BC4;font-style:italic">Không có kỹ năng</div>
+      </div>
+
+      <!-- Target select (hiện khi chọn skill cần target) -->
+      <div class="target-section" id="target-section" style="display:none">
+        <div class="target-title">🎯 Chọn mục tiêu:</div>
+        <div class="target-list" id="target-list"></div>
+      </div>
+
+      <button class="btn btn-skip" style="margin-top:12px" onclick="submitAction('skip', null)" id="btn-skip">
+        ⏭️ Bỏ qua (không dùng kỹ năng)
+      </button>
+      <button class="btn btn-success" style="margin-top:8px;display:none" id="btn-use-skill" onclick="useSelectedSkill()">
+        ✅ Sử dụng kỹ năng
+      </button>
+    </div>
+
+    <!-- Waiting for others -->
+    <div id="phase-wait" class="card" style="display:none">
+      <div class="waiting-msg">
+        ⏳ Đã gửi! Đang chờ người khác
+        <span class="waiting-dot">.</span><span class="waiting-dot">.</span><span class="waiting-dot">.</span>
+      </div>
+      <div id="pending-action-label" style="text-align:center;margin-top:8px;font-size:.85em;color:#9DEEFF;font-weight:700;display:none"></div>
+      <!-- Trạng thái submit của từng người chơi -->
+      <div class="pending-count-label" id="pending-count-label"></div>
+      <div class="pending-bar" id="pending-bar"></div>
+      <div class="arena-card player-arena">
+        <div class="arena-topbar">
+          <div class="arena-title">⚔️ Đấu Trường Tri Thức</div>
+        </div>
+        <div class="arena-body">
+          <div class="arena-stage" id="pa-stage">
+            <div class="scene" id="pa-scene"></div>
+            <div class="players-layer" id="pa-players"></div>
+          </div>
+          <aside class="arena-rank">
+            <h4>🏆 Xếp hạng (điểm)</h4>
+            <div id="pa-rank"></div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <!-- Round result (hiển sau khi vòng kết thúc) -->
+    <div id="phase-result" class="card" style="display:none">
+      <div class="card-title">⚔️ Kết quả vòng <span id="result-round-num"></span></div>
+      <div id="result-events"></div>
+      <div style="margin-top:14px">
+        <div style="font-size:.85em;font-weight:700;color:#938BC4;margin-bottom:6px">⭐ Điểm sau vòng đấu:</div>
+        <div class="mini-hp-grid" id="result-hp-grid"></div>
+      </div>
+      <div class="result-next">
+        ⏳ Đang hiển thị kết quả vòng… Câu tiếp theo sẽ xuất hiện sau ít giây
+      </div>
+    </div>
+
+  </div><!-- end sec-play -->
+
+  <!-- SEC 4: Eliminated -->
+  <div id="sec-elim" class="section">
+    <div class="card">
+      <div class="elim-screen">
+        <div class="medal">💀</div>
+        <div style="font-size:1.5em;font-weight:900;margin-bottom:8px">Bạn đã bị loại!</div>
+        <div style="color:#938BC4">Bạn có thể tiếp tục theo dõi trận đấu bên dưới</div>
+        <!-- Opponents still shown -->
+        <div style="margin-top:20px">
+          <div class="card-title">👥 Đối thủ còn lại</div>
+          <div class="opp-grid" id="opp-grid-elim"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 5: Finished -->
+  <div id="sec-finished" class="section">
+    <div class="card">
+      <div class="finished-screen">
+        <div class="medal" id="finish-medal">🏆</div>
+        <div style="font-size:1.6em;font-weight:900;margin-bottom:6px" id="finish-msg">Game kết thúc!</div>
+        <div id="finish-leaderboard"></div>
+        <button class="btn btn-primary" style="margin-top:20px" onclick="location.href='/attack-defense'">
+          🔄 Về trang chủ
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ROOM_ID = {{ room_id | tojson }};
+let myPlayerId = null;
+let myName = '';
+let pollInterval = null;
+let lastQIndex = -1;
+let selectedSkill = null;
+let selectedTarget = null;
+let pollMode = 'normal';  // 'normal' or 'fast'
+let answerSubmitted = false;
+let actionSubmitted = false;
+let eliminated = false;
+let pendingActionLabel = '';
+
+const ANON  = '<b>Một ai đó</b>';  // luôn giấu danh tính người ra đòn
+const ANON_L = '<b>một ai đó</b>'; // dạng giữa câu
+const STORAGE_KEY = 'ad_player_' + ROOM_ID;
+
+// ===== CHỌN NHÂN VẬT =====
+let selectedAnimal = BattleAnimals.list[0].id;
+
+function renderAnimalPicker() {
+  const box = document.getElementById('animal-picker');
+  if (!box) return;
+  const saved = localStorage.getItem('battle_animal');
+  if (saved && BattleAnimals.get(saved).id === saved) selectedAnimal = saved;
+  box.innerHTML = BattleAnimals.list.map(a =>
+    `<button type="button" class="animal-card${a.id === selectedAnimal ? ' selected' : ''}"
+             data-animal="${a.id}" title="${a.name}">
+       <span class="animal-art">${BattleAnimals.animalSvg(a.id, 0, 'animal-svg')}</span>
+       <span class="animal-name">${a.name}</span>
+     </button>`).join('');
+  box.querySelectorAll('.animal-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedAnimal = btn.dataset.animal;
+      localStorage.setItem('battle_animal', selectedAnimal);
+      box.querySelectorAll('.animal-card').forEach(b =>
+        b.classList.toggle('selected', b === btn));
+    });
+  });
+}
+renderAnimalPicker();
+
+function saveSession() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ player_id: myPlayerId, name: myName }));
+}
+function clearSession() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ===== KHỞI TẠO GIAO DIỆN NHẬP TÊN =====
+(function initGame() {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+  
+  if (saved) {
+    // Đã từng tham gia phòng này → tự động vào lại bằng player_id đã lưu
+    autoJoin(saved.name, saved.player_id);
+  } else {
+    // Lần đầu: focus vào input field
+    const input = document.getElementById('player-name-input');
+    if (input) {
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+})();
+
+function handleNameKeyPress(event) {
+  if (event.key === 'Enter') {
+    confirmAndJoin();
+  }
+}
+
+function confirmAndJoin() {
+  const nameInput = document.getElementById('player-name-input');
+  const name = (nameInput.value || '').trim();
+  
+  if (!name) {
+    const errBox = document.getElementById('join-error');
+    errBox.textContent = 'Vui lòng nhập tên!';
+    errBox.style.display = '';
+    return;
+  }
+  
+  if (name.length > 30) {
+    const errBox = document.getElementById('join-error');
+    errBox.textContent = 'Tên không được quá 30 ký tự!';
+    errBox.style.display = '';
+    return;
+  }
+  
+  autoJoin(name);
+}
+
+async function autoJoin(name, playerId) {
+  const errBox = document.getElementById('join-error');
+  const nameInput = document.getElementById('player-name-input');
+
+  errBox.style.display = 'none';
+  errBox.textContent = '';
+
+  try {
+    const res = await fetch('/attack-defense/api/join', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ room_id: ROOM_ID, name: name, player_id: playerId || null,
+                             avatar: selectedAnimal })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      // Rejoin tự động thất bại (phòng hết hạn / mất nhân vật) → xoá phiên cũ, về màn nhập tên
+      if (playerId) {
+        clearSession();
+        myPlayerId = null;
+      }
+      showSection('sec-join');
+      errBox.textContent = data.error;
+      errBox.style.display = '';
+      if (nameInput) { nameInput.value = ''; nameInput.focus(); }
+      return;
+    }
+
+    myPlayerId = data.player_id;
+    myName = data.name;
+    saveSession();
+    document.getElementById('lb-my-name').textContent = myName;
+    document.getElementById('my-name-hp').textContent = myName;
+
+    if (data.rejoin) {
+      startPolling();
+    } else {
+      showSection('sec-lobby');
+      await fetch('/attack-defense/api/ready', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ room_id: ROOM_ID, player_id: myPlayerId })
+      });
+      startPolling();
+    }
+  } catch(e) {
+    errBox.textContent = 'Lỗi kết nối!';
+    errBox.style.display = '';
+    if (nameInput) nameInput.focus();
+  }
+}
+
+// ===== POLLING =====
+function startPolling() {
+  pollMode = 'normal';
+  pollInterval = setInterval(poll, 1500);
+  poll();
+}
+
+async function poll() {
+  if (!myPlayerId) return;
+  try {
+    const url = `/attack-defense/api/state?room_id=${ROOM_ID}&player_id=${myPlayerId}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.error) {
+      renderPlayerState(data);
+      
+      // Manage polling frequency based on result_phase
+      if (data.result_phase && pollMode !== 'fast') {
+        // Entering result_phase: switch to fast polling
+        pollMode = 'fast';
+        clearInterval(pollInterval);
+        pollInterval = setInterval(poll, 500);
+      } else if (!data.result_phase && pollMode === 'fast') {
+        // Exiting result_phase: switch back to normal polling
+        pollMode = 'normal';
+        clearInterval(pollInterval);
+        pollInterval = setInterval(poll, 1500);
+      }
+    }
+  } catch(e) {
+    console.error("Poll error:", e);
+  }
+}
+
+// ===== RENDER =====
+function renderPlayerState(state) {
+  const me = state.me;
+  if (!me) return;
+
+  if (state.state === 'lobby') {
+    showSection('sec-lobby');
+    document.getElementById('lb-players').innerHTML = state.players.map(p =>
+      `<div class="ls-player ${p.ready ? 'ready' : ''}">${esc(p.name)} ${p.ready ? '✅' : '⏳'}</div>`
+    ).join('');
+    return;
+  }
+
+  if (state.state === 'finished') {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    pollMode = 'normal';
+    clearSession();
+    showSection('sec-finished');
+    renderFinished(state);
+    return;
+  }
+
+  // Running
+  const myHp = me.hp;
+  if (!me.alive && !eliminated) {
+    eliminated = true;
+    showSection('sec-elim');
+  } else if (me.alive) {
+    showSection('sec-play');
+  }
+
+  // Cập nhật điểm và nhân vật
+  updateMyHp(myHp);
+  renderMyHero(state);
+
+  // Reset flags khi chuyển câu mới
+  const qIdx = state.current_q_index;
+  if (qIdx !== lastQIndex) {
+    lastQIndex = qIdx;
+    answerSubmitted = false;
+    actionSubmitted = false;
+    pendingActionLabel = '';
+    selectedSkill = null;
+    selectedTarget = null;
+    document.getElementById('answer-result').style.display = 'none';
+    document.getElementById('skill-gained-box').style.display = 'none';
+    document.getElementById('btn-use-skill').style.display = 'none';
+    document.getElementById('btn-skip').disabled = false;
+    document.getElementById('target-section').style.display = 'none';
+    const lbl = document.getElementById('pending-action-label');
+    if (lbl) { lbl.style.display = 'none'; lbl.textContent = ''; }
+  }
+
+  document.getElementById('q-idx-label').textContent = qIdx + 1;
+  document.getElementById('q-total-label').textContent = state.total_questions;
+
+  // Cập nhật HP đối thủ (luôn chạy)
+  const opponents = state.players.filter(p => p.player_id !== myPlayerId);
+  renderOpponents(opponents, 'opp-grid');
+  if (!me.alive) renderOpponents(opponents, 'opp-grid-elim');
+
+  // Lưu state toàn cục để renderQuestion đọc eliminate_options
+  window._myState = state;
+
+  // === Tạm dừng cả phòng: đóng băng màn hình ===
+  document.getElementById('pause-overlay').classList.toggle('show', !!state.paused);
+  if (state.paused) return;
+
+  if (!me.alive) return;
+
+  updateCountdown(state);
+
+  // === Result phase: server điều khiển, thiết lập hiệu ứng đã áp dụng ===
+  if (state.result_phase) {
+    hideDelayOverlay();
+    const lastLog = state.round_log && state.round_log.length > 0
+      ? state.round_log[state.round_log.length - 1] : null;
+    showPhase('phase-result');
+    renderRoundResult(lastLog, state.players);
+    return;
+  }
+
+  // === Bị trừ thời gian: hoãn hiện câu hỏi, đếm lùi trên màn hình ===
+  if (!me.answered_current && me.delay_remaining && me.delay_remaining > 0.1) {
+    showDelayOverlay(me.delay_remaining, me.delay_from);
+    return;
+  }
+  hideDelayOverlay();
+
+  // === Phase logic bình thường ===
+  if (!me.answered_current && !answerSubmitted) {
+    // Bước 1: Trả lời câu hỏi
+    showPhase('phase-question');
+    document.getElementById('double-banner').style.display = state.is_double ? '' : 'none';
+    if (state.question) renderQuestion(state.question, qIdx);
+  } else if (me.answered_current && !actionSubmitted && me.current_action === null) {
+    // Bước 2: Chọn kỹ năng
+    showPhase('phase-skill');
+    renderMySkills(me.skills, opponents, state.players);
+  } else {
+    // Bước 3: Đã submit, chờ người khác
+    showPhase('phase-wait');
+    const lbl = document.getElementById('pending-action-label');
+    if (lbl && pendingActionLabel) { lbl.textContent = pendingActionLabel; lbl.style.display = ''; }
+    renderPendingBar(state);
+    BattleArena.render(state.players, { myPid: myPlayerId, totalQuestions: state.total_questions });
+  }
+}
+
+
+// Nhân vật của tôi: đúng con vật đã chọn, đúng tông màu đang dùng trong trận.
+function renderMyHero(state) {
+  const box = document.getElementById('my-hero-fig');
+  if (!box) return;
+  const players = (state && state.players) || [];
+  const me = players.find(p => p.player_id === myPlayerId);
+  const looks = BattleAnimals.assignColors(players);
+  const look = (me && looks[me.player_id]) || { animal: selectedAnimal, variant: 0 };
+  const sig = look.animal + ':' + look.variant;
+  if (box.dataset.sig !== sig) {
+    box.innerHTML = BattleAnimals.animalSvg(look.animal, look.variant, 'char-body');
+    box.dataset.sig = sig;
+  }
+  if (me) box.style.filter = me.alive ? '' : 'grayscale(1) brightness(.6)';
+}
+
+function updateMyHp(hp) {
+  const bar = document.getElementById('my-hp-bar');
+  const val = document.getElementById('my-hp-val');
+  const cls = hp > 60 ? 'high' : hp > 30 ? 'mid' : 'low';
+  bar.style.width = hp + '%';
+  bar.className = 'my-hp-bar ' + cls;
+  val.textContent = hp.toFixed(0);
+  val.style.color = cls === 'high' ? '#4FE0A6' : cls === 'mid' ? '#FFC46B' : '#FF6B8A';
+}
+
+function renderOpponents(opponents, gridId) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  if (!opponents.length) { grid.innerHTML = '<div style="color:#938BC4;font-style:italic">Chưa có đối thủ</div>'; return; }
+  grid.innerHTML = opponents.map(p => {
+    const cls = p.hp > 60 ? 'high' : p.hp > 30 ? 'mid' : 'low';
+    return `<div class="opp-card ${p.alive ? '' : 'dead'}">
+      <div class="opp-name">
+        <span>${p.alive ? '' : '💀'}${esc(p.name)}</span>
+        <span style="color:${cls==='high'?'#4FE0A6':cls==='mid'?'#FFC46B':'#FF6B8A'};font-weight:900">${p.hp.toFixed(0)}</span>
+      </div>
+      <div class="opp-hp-bg"><div class="opp-hp-bar ${cls}" style="width:${p.hp}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderQuestion(q, idx) {
+  const eliminateOptions = (window._myState && window._myState.me) ? (window._myState.me.eliminate_options || []) : [];
+  // Hiển thị badge buff eliminate nếu đang có
+  const existingBadge = document.getElementById('eliminate-badge');
+  if (existingBadge) existingBadge.remove();
+  const qTextEl = document.getElementById('play-q-text');
+  if (q.html) {
+    qTextEl.innerHTML = q.text;
+  } else {
+    qTextEl.textContent = q.text;
+  }
+  if (eliminateOptions.length > 0) {
+    const badge = document.createElement('div');
+    badge.id = 'eliminate-badge';
+    badge.style.cssText = 'background:rgba(210,168,255,.15);border:1px solid #8B5CF6;border-radius:8px;padding:6px 12px;font-size:.82em;color:#C8A6FF;font-weight:700;margin-bottom:10px;text-align:center';
+    badge.textContent = '🔮 2 phương án sai đã bị loại bỏ!';
+    qTextEl.before(badge);
+  }
+  const opts = document.getElementById('play-q-opts');
+  opts.innerHTML = Object.entries(q.options).map(([k, v]) => {
+    const hidden = eliminateOptions.includes(k);
+    const display = q.html ? v : esc(v);
+    if (hidden) {
+      return `<button class="q-opt-btn" data-key="${k}" disabled style="opacity:.22;text-decoration:line-through;cursor:not-allowed">${k}. ${display} ❌</button>`;
+    }
+    return `<button class="q-opt-btn" data-key="${k}" onclick="submitAnswer('${k}')">${k}. ${display}</button>`;
+  }).join('');
+  // Render KaTeX nếu có
+  _renderMath(document.getElementById('phase-question'));
+}
+
+async function submitAnswer(selected) {
+  if (answerSubmitted) return;
+  answerSubmitted = true;
+
+  // Disable all buttons ngay lập tức (chưa biết đúng/sai)
+  document.querySelectorAll('.q-opt-btn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.key === selected) b.classList.add('selected');
+  });
+
+  const res = await fetch('/attack-defense/api/answer', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ room_id: ROOM_ID, player_id: myPlayerId, answer: selected })
+  });
+  const data = await res.json();
+
+  // Hiển thị đúng/sai dựa vào phản hồi từ server
+  document.querySelectorAll('.q-opt-btn').forEach(b => {
+    b.classList.remove('selected');
+    if (b.dataset.key === selected) b.classList.add(data.correct ? 'correct' : 'wrong');
+    if (!data.correct && b.dataset.key === data.correct_answer) b.classList.add('correct');
+  });
+
+  const resultBox = document.getElementById('answer-result');
+  resultBox.style.display = '';
+  if (data.correct) {
+    const hpText = data.hp_gain > 0 ? ` (+${Math.round(data.hp_gain * 10) / 10} điểm)` : '';
+    resultBox.textContent = `✅ Đúng rồi! Chọn 1 trong 3 kỹ năng!${hpText}`;
+    resultBox.className = 'answer-result correct';
+  } else {
+    resultBox.textContent = '❌ Sai rồi! Đáp án đúng: ' + data.correct_answer;
+    resultBox.className = 'answer-result wrong';
+  }
+
+  // Overlay nổi bật (giữ ~2.2s) để người chơi kịp thấy đúng/sai + chuỗi
+  showResultOverlay(data);
+}
+
+let resultOverlayTimer = null;
+function showResultOverlay(data) {
+  const ov = document.getElementById('result-overlay');
+  const pop = document.getElementById('result-pop');
+  if (!ov || !pop) return;
+  pop.className = 'result-pop ' + (data.correct ? 'correct' : 'wrong');
+  let html = `<div class="result-big">${data.correct ? '✅ ĐÚNG!' : '❌ SAI!'}</div>`;
+  if (data.correct) {
+    if (data.is_double) html += `<div class="result-streak" style="color:#FFD27A">⚡ VÒNG NHÂN ĐÔI ĐIỂM!</div>`;
+    if (data.streak >= 2) html += `<div class="result-streak">🔥 Chuỗi ×${data.streak}!</div>`;
+    const parts = [];
+    if (data.hp_gain > 0) parts.push(`+${Math.round(data.hp_gain * 10) / 10} điểm`);
+    if (data.speed_bonus > 0) {
+      const nb = data.speed_blocks || {};
+      parts.push(`⚡ nhanh +${data.speed_bonus}` + (data.speed_block && nb.blocks ? ` (block ${data.speed_block}/${nb.blocks})` : ''));
+    }
+    if (data.skill_options && data.skill_options.length) parts.push('🎁 chọn kỹ năng');
+    if (parts.length) html += `<div class="result-sub">${parts.join(' · ')}</div>`;
+  } else {
+    html += `<div class="result-sub">Đáp án đúng: <b>${data.correct_answer}</b> · −5 điểm · chuỗi về 0</div>`;
+  }
+  pop.innerHTML = html;
+  ov.classList.add('show');
+  if (resultOverlayTimer) clearTimeout(resultOverlayTimer);
+  resultOverlayTimer = setTimeout(() => ov.classList.remove('show'), 2200);
+}
+
+// ===== OVERLAY TRỪ THỜI GIAN (đếm lùi hiện câu hỏi) =====
+let delayInterval = null;
+let delayEndTs = 0;
+function showDelayOverlay(seconds, fromName) {
+  const ov = document.getElementById('delay-overlay');
+  if (!ov) return;
+  document.getElementById('delay-reason').textContent =
+    fromName ? 'Một ai đó đã trừ thời gian của bạn' : 'Bạn bị trừ thời gian';
+  // Đồng bộ mốc kết thúc theo giá trị server mỗi lần poll
+  delayEndTs = Date.now() + seconds * 1000;
+  ov.classList.add('show');
+  const tick = () => {
+    const rem = (delayEndTs - Date.now()) / 1000;
+    document.getElementById('delay-count').textContent = Math.max(0, Math.ceil(rem)) + ' giây';
+    if (rem <= 0.05) {
+      if (delayInterval) { clearInterval(delayInterval); delayInterval = null; }
+      ov.classList.remove('show');
+      poll();  // hiện câu hỏi ngay khi hết giờ chờ
+    }
+  };
+  tick();
+  if (!delayInterval) delayInterval = setInterval(tick, 200);
+}
+function hideDelayOverlay() {
+  const ov = document.getElementById('delay-overlay');
+  if (ov) ov.classList.remove('show');
+  if (delayInterval) { clearInterval(delayInterval); delayInterval = null; }
+}
+
+function renderMySkills(skills, opponents, allPlayers) {
+  const list = document.getElementById('my-skills-list');
+  if (!skills || !skills.length) {
+    list.innerHTML = '<div style="color:#938BC4;font-style:italic;text-align:center">Không có kỹ năng nào. Chỉ có thể bỏ qua.</div>';
+    document.getElementById('btn-skip').style.display = '';
+    document.getElementById('btn-use-skill').style.display = 'none';
+    selectedSkill = null;
+    selectedTarget = null;
+    // Tự động submit "skip" nếu chưa submit
+    if (document.body.offsetParent !== null) {
+      // Auto-submit skip after brief delay to ensure UI is ready
+      setTimeout(() => {
+        if (!actionSubmitted) {
+          submitAction('skip', null);
+        }
+      }, 200);
+    }
+    return;
+  }
+
+  // Kiểm tra skill đang chọn còn tồn tại không
+  const skillKeys = skills.map(s => s.skill);
+  if (selectedSkill && !skillKeys.includes(selectedSkill)) {
+    selectedSkill = null;
+    selectedTarget = null;
+  }
+
+  list.innerHTML = skills.map(s => `
+    <div class="skill-item ${selectedSkill === s.skill ? 'selected-skill' : ''}" data-skill="${s.skill}" onclick="selectSkill('${s.skill}')">
+      <div class="sk-row">
+        <div>
+          <div class="sk-name">${esc(s.name)}</div>
+          <div class="sk-desc">${esc(s.desc)}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Luôn enable lại btn-skip
+  document.getElementById('btn-skip').disabled = false;
+  document.getElementById('btn-skip').style.display = '';
+
+  // Khôi phục trạng thái UI nếu đã có skill được chọn từ trước
+  if (selectedSkill) {
+    const needsTarget = ['attack', 'double', 'balance', 'time_steal'].includes(selectedSkill);
+    const targetSection = document.getElementById('target-section');
+    const btnUse = document.getElementById('btn-use-skill');
+    if (needsTarget) {
+      targetSection.style.display = '';
+      btnUse.style.display = selectedTarget ? '' : 'none';
+      if (!targetSection.querySelector('.target-btn')) renderTargetList();
+    } else {
+      targetSection.style.display = 'none';
+      btnUse.style.display = '';
+      btnUse.disabled = false;
+    }
+  }
+}
+
+function selectSkill(skillKey) {
+  selectedSkill = skillKey;
+  selectedTarget = null;
+  document.querySelectorAll('.skill-item').forEach(el => {
+    el.classList.toggle('selected-skill', el.dataset.skill === skillKey);
+  });
+
+  const needsTarget = ['attack', 'double', 'balance', 'time_steal'].includes(skillKey);
+  const targetSection = document.getElementById('target-section');
+  const btnUse = document.getElementById('btn-use-skill');
+
+  if (needsTarget) {
+    targetSection.style.display = '';
+    btnUse.style.display = 'none';
+    renderTargetList();
+  } else {
+    targetSection.style.display = 'none';
+    btnUse.style.display = '';
+    btnUse.disabled = false;
+  }
+}
+
+function renderTargetList() {
+  // Fetch fresh state for alive opponents
+  fetch(`/attack-defense/api/state?room_id=${ROOM_ID}&player_id=${myPlayerId}`)
+    .then(r => r.json())
+    .then(state => {
+      // Lọc ra những người sống và KHÔNG đang ẩn mình (hide_active)
+      const opponents = (state.players || []).filter(p => p.player_id !== myPlayerId && p.alive && !p.hide_active);
+      const tl = document.getElementById('target-list');
+      if (opponents.length === 0) {
+        tl.innerHTML = '<div style="color:#938BC4;font-style:italic">Không có đối thủ khả dụng (đều đang ẩn)</div>';
+        return;
+      }
+      tl.innerHTML = opponents.map(p =>
+        `<div class="target-btn" data-tid="${p.player_id}" onclick="selectTarget('${p.player_id}', this)">${esc(p.name)}</div>`
+      ).join('');
+    });
+}
+
+function selectTarget(targetId, el) {
+  selectedTarget = targetId;
+  document.querySelectorAll('.target-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('btn-use-skill').style.display = '';
+  document.getElementById('btn-use-skill').disabled = false;
+}
+
+async function useSelectedSkill() {
+  if (!selectedSkill) return;
+  const needsTarget = ['attack', 'double', 'balance'].includes(selectedSkill);
+  if (needsTarget && !selectedTarget) {
+    alert('Vui lòng chọn mục tiêu!');
+    return;
+  }
+  await submitAction(selectedSkill, selectedTarget);
+}
+
+async function submitAction(skill, targetId) {
+  if (actionSubmitted) return;
+  actionSubmitted = true;
+  document.getElementById('btn-skip').disabled = true;
+  document.getElementById('btn-use-skill').disabled = true;
+
+  const res = await fetch('/attack-defense/api/action', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ room_id: ROOM_ID, player_id: myPlayerId, skill, target_id: targetId })
+  });
+  const data = await res.json();
+
+  if (data.error) {
+    // Server từ chối → reset để player thử lại
+    actionSubmitted = false;
+    document.getElementById('btn-skip').disabled = false;
+    document.getElementById('btn-use-skill').disabled = false;
+    return;
+  }
+
+  // Lưu nhãn hành động đã gửi để hiển thị trong phase-wait
+  if (skill === 'skip') {
+    pendingActionLabel = '⏭️ Bạn đã bỏ qua vòng này';
+  } else {
+    const skillNames = { attack:'⚔️ Tấn công', heal:'💊 Tăng máu', counter:'🛡️ Phản đòn',
+                        double:'💥 Tấn công gấp đôi', aoe:'🌪️ Tấn công toàn bộ', balance:'⚡ Công thủ toàn diện' };
+    pendingActionLabel = `${skillNames[skill] || skill} đã được sử dụng!`;
+  }
+
+  // Hiển thị phase-wait với HP dashboard ngay lập tức
+  showPhase('phase-wait');
+  const lbl = document.getElementById('pending-action-label');
+  if (lbl) { lbl.textContent = pendingActionLabel; lbl.style.display = ''; }
+
+  // Cập nhật HP grid: poll một lần ngay
+  try {
+    const r = await fetch(`/attack-defense/api/state?room_id=${ROOM_ID}&player_id=${myPlayerId}`);
+    const s = await r.json();
+    if (s.players) BattleArena.render(s.players, { myPid: myPlayerId, totalQuestions: s.total_questions });
+  } catch(e) {}
+}
+
+function renderFinished(state) {
+  const sorted = [...state.players].sort((a,b) => b.hp - a.hp);
+  const me = sorted.find(p => p.player_id === myPlayerId);
+  const myRank = me ? sorted.indexOf(me) + 1 : 0;
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('finish-medal').textContent = medals[myRank - 1] || '🎮';
+  document.getElementById('finish-msg').textContent = myRank === 1 ? '🎉 Bạn chiến thắng!' : `Bạn xếp hạng #${myRank}`;
+  document.getElementById('finish-leaderboard').innerHTML = sorted.map((p, i) =>
+    `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:${p.player_id===myPlayerId?'rgba(88,166,255,.08)':'#272046'};border-radius:8px;margin-bottom:6px;border:1px solid ${p.player_id===myPlayerId?'#6FE3FF':'#3B3268'}">
+      <span style="font-size:1.2em">${medals[i]||i+1+'.'}</span>
+      <span style="flex:1;font-weight:700">${esc(p.name)}</span>
+      <span style="font-weight:900;color:${p.hp>60?'#4FE0A6':p.hp>30?'#FFC46B':'#FF6B8A'}">${p.hp.toFixed(0)}</span>
+    </div>`
+  ).join('');
+}
+
+// ===== HELPERS =====
+function showSection(id) {
+  ['sec-join','sec-lobby','sec-play','sec-elim','sec-finished'].forEach(s => {
+    document.getElementById(s).classList.remove('active');
+  });
+  document.getElementById(id).classList.add('active');
+}
+
+function showPhase(id) {
+  ['phase-question','phase-skill','phase-wait','phase-result'].forEach(p => {
+    const el = document.getElementById(p);
+    if (el) el.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  if (el) el.style.display = '';
+}
+
+// ===== COUNTDOWN TIMER =====
+function updateCountdown(state) {
+  const wrap = document.getElementById('q-timer-wrap');
+  if (!state.time_limit || state.time_remaining == null) {
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+  if (wrap) wrap.style.display = '';
+  const pct = Math.max(0, state.time_remaining / state.time_limit * 100);
+  const fill = document.getElementById('q-timer-fill');
+  const secs = document.getElementById('q-timer-secs');
+  fill.style.width = pct + '%';
+  const cls = pct > 50 ? 'high' : pct > 25 ? 'mid' : 'low';
+  fill.className = 'q-timer-fill ' + cls;
+  const secsVal = Math.ceil(state.time_remaining);
+  secs.textContent = secsVal + 's';
+  secs.style.color = cls === 'high' ? '#4FE0A6' : cls === 'mid' ? '#FFC46B' : '#FF6B8A';
+}
+
+// ===== ROUND RESULT (server-controlled via result_phase) =====
+function renderRoundResult(log, players) {
+  if (log) {
+    document.getElementById('result-round-num').textContent = log.round;
+    // Danh tính người ra đòn luôn được giấu: chỉ hiện "một ai đó".
+    const who  = n => (n === myName ? '<b>bạn</b>' : `<b>${esc(n)}</b>`);
+    const whoC = n => (n === myName ? '<b>Bạn</b>' : `<b>${esc(n)}</b>`);
+    const eventHtml = {
+      damage:      e => `⚔️ ${ANON} tấn công ${who(e.target)}: −${e.dmg} điểm`,
+      heal:        e => `💊 ${whoC(e.player)}: +${e.amount} điểm`,
+      counter:     e => `🛡️ Phản đòn! ${whoC(e.target)} trả đòn ${ANON_L}: −${e.dmg} điểm`,
+      eliminated:  e => `💀 ${whoC(e.player)} bị loại!`,
+      set_counter: e => `🛡️ ${whoC(e.player)} kích hoạt phản đòn`,
+      eliminate:   e => `🔮 ${whoC(e.player)} sẽ loại 2 phương án sai ở câu tiếp theo`,
+      evade:       e => `👻 ${whoC(e.target)} né đòn của ${ANON_L}`,
+      hide:        e => `👻 ${whoC(e.player)} ẩn mình`,
+      time_steal:  e => `⏱️ ${ANON} cướp ${e.time_deducted || 15}s của ${who(e.target)}`,
+      time_bomb:   e => `💣 ${ANON} thả bom thời gian: tất cả -${e.percent || 15}% thời gian`,
+    };
+    const eventsEl = document.getElementById('result-events');
+    if (log.events && log.events.length) {
+      eventsEl.innerHTML = log.events.map(ev => {
+        const fn = eventHtml[ev.type];
+        return `<div class="result-event ${ev.type}">${fn ? fn(ev) : esc(JSON.stringify(ev))}</div>`;
+      }).join('');
+    } else {
+      eventsEl.innerHTML = '<div class="result-event skip">Không có sự kiện nào vòng này.</div>';
+    }
+    // Hiển thị HP trước → sau có delta
+    renderMiniHpGridDelta(players, 'result-hp-grid', log.hp_before);
+  } else {
+    renderMiniHpGrid(players, 'result-hp-grid');
+  }
+}
+
+// ===== MINI HP GRID =====
+function renderMiniHpGrid(players, gridId) {
+  renderMiniHpGridDelta(players, gridId, null);
+}
+
+function renderMiniHpGridDelta(players, gridId, hpBefore) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.innerHTML = players.map(p => {
+    const cls = p.hp > 60 ? 'high' : p.hp > 30 ? 'mid' : 'low';
+    let deltaHtml = '';
+    if (hpBefore && hpBefore[p.player_id] !== undefined) {
+      const before = hpBefore[p.player_id];
+      const delta = Math.round((p.hp - before) * 10) / 10;
+      if (delta > 0) deltaHtml = `<div class="mini-hp-delta pos">+${delta}</div>`;
+      else if (delta < 0) deltaHtml = `<div class="mini-hp-delta neg">${delta}</div>`;
+      else deltaHtml = `<div class="mini-hp-delta" style="color:#6F679B">±0</div>`;
+    }
+    return `<div class="mini-hp-row">
+      <div class="mini-hp-name" style="color:${p.alive?'#ECE8FF':'#6F679B'}">${p.alive?'':'\ud83d\udc80'}${esc(p.name)}</div>
+      <div class="mini-hp-bg"><div class="mini-hp-fill ${p.alive?cls:''}" style="width:${p.hp}%;${p.alive?'':'background:#3B3268'}"></div></div>
+      <div class="mini-hp-pct" style="color:${cls==='high'?'#4FE0A6':cls==='mid'?'#FFC46B':'#FF6B8A'}">${p.hp.toFixed(0)}</div>
+      ${deltaHtml}
+    </div>`;
+  }).join('');
+}
+
+// ===== PENDING BAR (hiển thị ai đã submit trong vòng này) =====
+function renderPendingBar(state) {
+  const alive = state.players.filter(p => p.alive);
+  const actionStatus = state.action_status || {};
+  const done = alive.filter(p => actionStatus[p.player_id]).length;
+  const total = alive.length;
+  const lbl = document.getElementById('pending-count-label');
+  if (lbl) lbl.textContent = `Đã chọn: ${done}/${total} người chơi`;
+  const bar = document.getElementById('pending-bar');
+  if (bar) {
+    bar.innerHTML = alive.map(p => {
+      const submitted = actionStatus[p.player_id];
+      return `<div class="pending-dot ${submitted ? 'done' : ''}" title="${esc(p.name)}: ${submitted ? 'Đã chọn' : 'Chưa chọn'}"></div>`;
+    }).join('');
+  }
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _renderMath(el) {
+  if (!el) return;
+  try {
+    if (window.renderMathInElement) {
+      renderMathInElement(el, {
+        delimiters: [
+          {left:'$$',right:'$$',display:true},
+          {left:'$',right:'$',display:false},
+          {left:'\\(',right:'\\)',display:false},
+          {left:'\\[',right:'\\]',display:true}
+        ],
+        throwOnError: false
+      });
+    }
+  } catch(e) {}
+}
+</script>
+{% endblock %}

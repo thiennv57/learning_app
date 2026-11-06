@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ subject.name }}{% endblock %}
+
+{% block content %}
+<style>
+.diff-selector{display:none;margin-top:12px;padding:14px;background:rgba(0,0,0,0.03);border-radius:12px;border:1px solid #e0e0e0}
+.diff-selector.show{display:block;animation:fadeIn 0.2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.diff-title{font-size:0.9em;font-weight:700;margin-bottom:10px;color:#444}
+.diff-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.diff-btn{flex:1;min-width:56px;max-width:90px;padding:10px 6px;border:2px solid #ddd;border-radius:12px;background:#fff;cursor:pointer;text-align:center;transition:all 0.2s;font-size:0.8em;font-weight:700}
+.diff-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.12)}
+.diff-btn .diff-stars{font-size:1.1em;display:block;margin-bottom:2px}
+.diff-btn .diff-label{display:block;color:#666;font-size:0.75em;font-weight:600}
+.diff-btn[data-d="1"]{border-color:#4CAF50}.diff-btn[data-d="1"]:hover,.diff-btn[data-d="1"].active{background:#4CAF50;color:#fff}
+.diff-btn[data-d="2"]{border-color:#8BC34A}.diff-btn[data-d="2"]:hover,.diff-btn[data-d="2"].active{background:#8BC34A;color:#fff}
+.diff-btn[data-d="3"]{border-color:#FF9800}.diff-btn[data-d="3"]:hover,.diff-btn[data-d="3"].active{background:#FF9800;color:#fff}
+.diff-btn[data-d="4"]{border-color:#FF5722}.diff-btn[data-d="4"]:hover,.diff-btn[data-d="4"].active{background:#FF5722;color:#fff}
+.diff-btn[data-d="5"]{border-color:#E91E63}.diff-btn[data-d="5"]:hover,.diff-btn[data-d="5"].active{background:#E91E63;color:#fff}
+.diff-btn.active .diff-label{color:#fff}
+</style>
+
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">🏠 Trang chủ</a>
+    <span>›</span>
+    <span>{{ subject.icon }} {{ subject.name }}</span>
+</div>
+
+<div class="subject-header" style="--card-color: {{ subject.color }}">
+    <h1>{{ subject.icon }} {{ subject.name }}</h1>
+    <p>{{ subject.description }}</p>
+</div>
+
+{% for sem_key, sem_data in subject.semesters.items() %}
+<div class="semester-section">
+    <h2 class="semester-title">{{ sem_data.icon }} {{ sem_data.name }}</h2>
+    <div class="topics-grid">
+        {% for topic_id, topic in sem_data.topics.items() %}
+        <div class="topic-card" id="topic-{{ topic_id }}">
+            <div class="topic-icon">{{ topic.icon }}</div>
+            <h3 class="topic-name">{{ topic.name }}</h3>
+            <p class="topic-desc">{{ topic.description }}</p>
+            <div class="topic-actions">
+                <button class="btn btn-success" style="background:#2e8b3a;color:#fff;" onclick="showDiff('{{ topic_id }}','choice')">
+                    ⚽ Trắc nghiệm (20 câu)
+                </button>
+                <button class="btn btn-secondary" style="background:#e67e22;color:#fff;" onclick="showDiff('{{ topic_id }}','fill')">
+                    ✏️ Tự luận (10 câu)
+                </button>
+                <button class="btn btn-secondary" style="background:#c0392b;color:#fff;" onclick="showDiff('{{ topic_id }}','gunny')">
+                    🔫 Bắn súng (20 câu)
+                </button>
+                {% if subject_id == 'tieng_anh' and topic_id != 'alphabet' %}
+                <a href="{{ url_for('flashcards', subject_id=subject_id, topic_id=topic_id) }}" class="btn btn-secondary">
+                    🃏 Học từ vựng
+                </a>
+                {% endif %}
+            </div>
+            <div class="diff-selector" id="diff-{{ topic_id }}">
+                <div class="diff-title">🎯 Chọn độ khó:</div>
+                <div class="diff-grid">
+                    <button class="diff-btn" data-d="1" onclick="goDiff('{{ subject_id }}','{{ topic_id }}',1)">
+                        <span class="diff-stars">⭐</span>
+                        <span class="diff-label">Dễ</span>
+                    </button>
+                    <button class="diff-btn" data-d="2" onclick="goDiff('{{ subject_id }}','{{ topic_id }}',2)">
+                        <span class="diff-stars">⭐⭐</span>
+                        <span class="diff-label">Vừa</span>
+                    </button>
+                    <button class="diff-btn" data-d="3" onclick="goDiff('{{ subject_id }}','{{ topic_id }}',3)">
+                        <span class="diff-stars">⭐⭐⭐</span>
+                        <span class="diff-label">Khá</span>
+                    </button>
+                    <button class="diff-btn" data-d="4" onclick="goDiff('{{ subject_id }}','{{ topic_id }}',4)">
+                        <span class="diff-stars">⭐⭐⭐⭐</span>
+                        <span class="diff-label">Khó</span>
+                    </button>
+                    <button class="diff-btn" data-d="5" onclick="goDiff('{{ subject_id }}','{{ topic_id }}',5)">
+                        <span class="diff-stars">⭐⭐⭐⭐⭐</span>
+                        <span class="diff-label">Siêu khó</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<script>
+let currentTopic = null;
+let currentMode = null;
+
+function showDiff(topicId, mode) {
+    // Close any open selector
+    document.querySelectorAll('.diff-selector.show').forEach(el => el.classList.remove('show'));
+    currentTopic = topicId;
+    currentMode = mode;
+    const sel = document.getElementById('diff-' + topicId);
+    sel.classList.add('show');
+    sel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function goDiff(subjectId, topicId, diff) {
+    if (currentMode === 'fill') {
+        window.location.href = `/luyen-tap/${subjectId}/${topicId}?mode=fill&difficulty=${diff}`;
+    } else if (currentMode === 'gunny') {
+        window.location.href = `/ban-sung/${subjectId}/${topicId}?difficulty=${diff}`;
+    } else {
+        window.location.href = `/da-bong/${subjectId}/${topicId}?difficulty=${diff}`;
+    }
+}
+</script>
+{% endblock %}
