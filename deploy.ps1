@@ -1,11 +1,11 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)]
     [string]$PAUser,
 
     [string]$SSHHost = "ssh.pythonanywhere.com",
     [string]$Branch = "main",
-    [string]$RemoteAppDir = "~/your-repo/learning_app",
-    [string]$VirtualEnv = "myenv",
+    [string]$RemoteAppDir = "~/learning_app",
+    [string]$VirtualEnv = "learning_app",
     [string]$WSGIPath,
     [string]$CommitMessage = "deploy: update $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
 
