@@ -35,19 +35,54 @@
      chụm lại một chỗ và các đội cách nhau theo điểm cao → thấp.
      Trong một đội, mỗi thành viên lệch nhau một chút cho khỏi che nhau.   */
   var MATE_GAP = 2.4;   // % chiều ngang giữa hai thành viên cùng đội
+  var MIN_X = 6;        // lề trái tối thiểu, chừa chỗ cho biển tên
 
-  function teamX(teamScore, range, mateIndex, mateCount) {
-    var base = runX(teamScore, range);
+  /* Chỗ đứng của từng ĐỘI trên đường đua.
+
+     Chỉ chia theo điểm thì hai đội sát điểm nhau (ví dụ 555 và 550) sẽ nằm
+     đè lên nhau và các thành viên xen kẽ, nhìn như một đám lộn xộn. Nên sau
+     khi xếp theo điểm, ta ép mỗi đội cách đội trên nó một khoảng tối thiểu
+     đủ chứa trọn một cụm — thứ tự vẫn đúng theo điểm, mà mỗi đội vẫn là một
+     khối riêng.                                                            */
+  function teamBaseX(teams) {
+    var list = (teams || []).slice().sort(function (a, b) { return b.hp - a.hp; });
+    var range = scoreRange(list.map(function (t) { return t.hp; }));
+    var widest = 0;
+    list.forEach(function (t) {
+      widest = Math.max(widest, ((t.members || []).length - 1) * MATE_GAP);
+    });
+    var gap = widest + MATE_GAP * 1.6;   // bề ngang một cụm, cộng khoảng hở
+    var out = {};
+    var prev = null;
+    list.forEach(function (t) {
+      var x = runX(t.hp, range);
+      if (prev !== null && x > prev - gap) x = prev - gap;
+      prev = x;
+      out[t.team_id] = x;
+    });
+    // Nếu đẩy xuống quá mép trái thì dồn cả bảng sang phải cho cân
+    var lowest = prev;
+    var floor = MIN_X + widest;
+    if (lowest !== null && lowest < floor) {
+      var shift = floor - lowest;
+      Object.keys(out).forEach(function (k) {
+        out[k] = Math.min(RUN_FINISH, out[k] + shift);
+      });
+    }
+    return out;
+  }
+
+  function teamX(baseX, mateIndex, mateCount) {
     // Người điểm cao nhất của đội đứng đúng mốc của đội, các bạn còn lại xếp
     // lùi về sau — nhờ vậy đội dẫn đầu không bị dồn cục ở vạch đích.
     var off = -(mateIndex || 0) * MATE_GAP;
-    return Math.max(RUN_START, Math.min(RUN_FINISH, base + off));
+    return Math.max(MIN_X, Math.min(RUN_FINISH, baseX + off));
   }
 
   /* Hàng chạy thứ i trên mặt đường (tính theo % chiều cao của sân khấu).
      Mặt đường chiếm khoảng 58%–96%; người ở hàng dưới đứng gần người xem.  */
-  var ROW_TOP = 78;     // % chiều cao: hàng trong cùng, ngay dưới mép vỉa hè
-  var ROW_BOTTOM = 97;  // % chiều cao: hàng ngoài cùng, gần người xem
+  var ROW_TOP = 74;     // % chiều cao: hàng trong cùng, ngay dưới mép vỉa hè
+  var ROW_BOTTOM = 96;  // % chiều cao: hàng ngoài cùng, gần người xem
   var MAX_ROWS = 4;     // nhiều người thì xếp vòng lại, đừng chia thêm hàng
 
   function rowCount(n) { return Math.max(1, Math.min(MAX_ROWS, n)); }
@@ -64,7 +99,21 @@
   function fitScale(stageEl, n) {
     var h = (stageEl && stageEl.clientHeight) || 480;
     var rowPx = (ROW_BOTTOM - ROW_TOP) / 100 * h / rowCount(n);
-    return Math.max(0.5, Math.min(1.1, rowPx / 42));
+    return Math.max(0.62, Math.min(1.15, rowPx / 38));
+  }
+
+  /* Báo bề ngang sân khấu cho CSS (biến --stage-w) và giữ nó khớp khi cửa sổ
+     đổi cỡ hoặc vào/ra toàn màn hình. Nhờ biến này mà vị trí nhân vật tính
+     được bằng transform thay vì thuộc tính left.                          */
+  function watchStage(stageEl) {
+    if (!stageEl) return;
+    var apply = function () {
+      stageEl.style.setProperty('--stage-w', (stageEl.clientWidth || 1000) + 'px');
+    };
+    apply();
+    if (stageEl._stageRO || !global.ResizeObserver) return;
+    stageEl._stageRO = new global.ResizeObserver(apply);
+    stageEl._stageRO.observe(stageEl);
   }
 
   /* ---- Khung cảnh: trời, cây phượng, dãy nhà vàng, cổng đỏ, mặt đường ---- */
@@ -197,9 +246,11 @@
     scoreRange: scoreRange,
     runX: runX,
     teamX: teamX,
+    teamBaseX: teamBaseX,
     rowY: rowY,
     rowCount: rowCount,
     fitScale: fitScale,
+    watchStage: watchStage,
     RUN_START: RUN_START,
     RUN_FINISH: RUN_FINISH
   };

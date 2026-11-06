@@ -34,6 +34,17 @@
   --r-pill:999px;
 
   --display:'Baloo 2','Be Vietnam Pro',system-ui,sans-serif;
+
+  /* Chuyển động — một bộ số dùng chung cho cả app, không mỗi chỗ một kiểu.
+     Không dùng đường cong vọt quá đích cho chuyển động liên tục: đó là thứ
+     làm giao diện trông rung rinh. */
+  --m-in:140ms;      /* trỏ chuột vào   */
+  --m-out:200ms;     /* trỏ chuột ra    */
+  --m-press:90ms;    /* bấm xuống       */
+  --m-bar:420ms;     /* thanh điểm chạy */
+  --m-travel:800ms;  /* nhân vật di chuyển trên đường đua */
+  --m-ease:cubic-bezier(.2,.8,.2,1);      /* mọi thao tác giao diện */
+  --m-ease-io:cubic-bezier(.65,0,.35,1);  /* chỉ dùng khi vật thể di chuyển xa */
   --body:'Be Vietnam Pro',system-ui,-apple-system,sans-serif;
 }
 
@@ -86,10 +97,19 @@ body{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;
   padding:11px 22px;border:1px solid transparent;border-radius:var(--r-pill);
   font-family:var(--body);font-weight:700;font-size:.95rem;cursor:pointer;
-  transition:transform .12s ease,background .15s,border-color .15s,color .15s;
+  transition:transform var(--m-out) var(--m-ease),background var(--m-out),
+             border-color var(--m-out),color var(--m-out),filter var(--m-out);
   color:var(--text);background:var(--raise);
 }
-.btn:active{transform:translateY(1px)}
+/* Rê chuột nhích lên 1px, bấm lún xuống 1px và thu nhẹ — đủ để tay người dùng
+   thấy nút có phản hồi, không phô trương. Chỉ áp dụng cho chuột, không cho
+   màn cảm ứng (tránh trạng thái rê bị dính sau khi chạm). */
+@media(hover:hover){
+  .btn:hover:not(:disabled){transform:translateY(-1px);transition-duration:var(--m-in)}
+}
+.btn:active:not(:disabled){
+  transform:translateY(1px) scale(.985);transition-duration:var(--m-press);
+}
 .btn:disabled{opacity:.35;pointer-events:none}
 .btn:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
 .btn-primary{background:linear-gradient(180deg,var(--ice),var(--ice-deep));color:#06202B;border-color:rgba(255,255,255,.3)}
@@ -183,7 +203,7 @@ body{
 .hp-pct.mid{color:var(--gold)}
 .hp-pct.low{color:var(--rose)}
 .hp-bar-bg{background:var(--void-2);border-radius:var(--r-pill);height:9px;overflow:hidden}
-.hp-bar{height:100%;border-radius:var(--r-pill);transition:width .5s ease}
+.hp-bar{height:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease)}
 .hp-bar.high{background:linear-gradient(90deg,var(--mint-deep),var(--mint))}
 .hp-bar.mid{background:linear-gradient(90deg,var(--amber),var(--gold))}
 .hp-bar.low{background:linear-gradient(90deg,var(--rose-deep),var(--rose))}
@@ -205,7 +225,12 @@ body{
   padding:13px 16px;text-align:left;color:var(--text);font-family:var(--body);font-size:.97rem;
   cursor:pointer;transition:.15s;
 }
-.q-opt-btn:hover:not(:disabled){border-color:var(--ice);background:rgba(111,227,255,.08)}
+.q-opt-btn{transition:transform var(--m-out) var(--m-ease),border-color var(--m-out),background var(--m-out)}
+@media(hover:hover){
+  .q-opt-btn:hover:not(:disabled){border-color:var(--ice);background:rgba(111,227,255,.08);
+    transform:translateY(-2px);transition-duration:var(--m-in)}
+}
+.q-opt-btn:active:not(:disabled){transform:translateY(0) scale(.99);transition-duration:var(--m-press)}
 .q-opt-btn.selected{border-color:var(--ice);background:rgba(111,227,255,.14)}
 .q-opt-btn.correct{border-color:var(--mint);background:rgba(79,224,166,.13);color:var(--mint)}
 .q-opt-btn.wrong{border-color:var(--rose);background:rgba(255,107,138,.11);color:var(--rose)}
@@ -240,7 +265,7 @@ body{
 /* ===== Tiến độ & đồng hồ ===== */
 .progress-label{font-size:.84rem;color:var(--muted);margin-bottom:6px}
 .q-progress{background:var(--raise);border-radius:var(--r-pill);height:6px;overflow:hidden;margin-bottom:16px}
-.q-progress-bar{height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,var(--ice-deep),var(--ice));transition:width .4s}
+.q-progress-bar{height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,var(--ice-deep),var(--ice));transition:width var(--m-bar) var(--m-ease)}
 .q-timer{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .q-timer-bar-bg,.q-timer-bg{flex:1;background:var(--raise);border-radius:var(--r-pill);height:8px;overflow:hidden}
 .q-timer-bar,.q-timer-fill{height:100%;border-radius:var(--r-pill);transition:width .9s linear;background:linear-gradient(90deg,var(--mint-deep),var(--mint))}
@@ -258,7 +283,7 @@ body{
 .q-stat-key{width:20px;font-weight:700;text-align:center;color:var(--muted)}
 .q-stat-key.correct{color:var(--mint)}
 .q-stat-bar-bg{flex:1;height:12px;background:var(--void-2);border-radius:var(--r-pill);overflow:hidden;border:1px solid var(--edge-soft)}
-.q-stat-bar{height:100%;border-radius:var(--r-pill);background:var(--edge);transition:width .4s}
+.q-stat-bar{height:100%;border-radius:var(--r-pill);background:var(--edge);transition:width var(--m-bar) var(--m-ease)}
 .q-stat-bar.correct{background:linear-gradient(90deg,var(--mint-deep),var(--mint))}
 .q-stat-n{min-width:64px;text-align:right;color:var(--text-2);font-weight:600}
 
@@ -292,10 +317,10 @@ body{
 
 .arena-body{display:flex;align-items:stretch;background:var(--void-2)}
 .arena-stage{
-  position:relative;flex:1 1 auto;min-width:0;aspect-ratio:16/10;max-height:76vh;overflow:hidden;
+  position:relative;flex:1 1 auto;min-width:0;aspect-ratio:16/9;max-height:78vh;overflow:hidden;
   background:#8FD8F5;
 }
-@media(max-width:640px){.arena-stage{aspect-ratio:4/5}}
+@media(max-width:640px){.arena-stage{aspect-ratio:5/6}}
 
 .scene,.players-layer,.fx-layer{position:absolute;inset:0}
 .players-layer{z-index:6}
@@ -318,11 +343,18 @@ body{
 @media(max-width:640px){.trophy{width:58px}}
 
 /* ===== Nhân vật ===== */
+/* --x là vị trí trên đường đua tính theo % bề ngang sân khấu; --stage-w là bề
+   ngang sân khấu tính bằng px (JS đặt). Gộp cả hai vào transform để trình duyệt
+   chỉ phải hợp thành ảnh (GPU), không phải tính lại bố cục mỗi khung hình —
+   đây là khác biệt lớn nhất về độ mượt khi có chục nhân vật cùng chạy. */
 .char{
-  position:absolute;width:120px;z-index:10;display:flex;flex-direction:column;align-items:center;
-  transform:translate(-50%,-100%) scale(var(--s,1));transform-origin:50% 100%;
-  transition:filter .3s,opacity .3s,transform .6s cubic-bezier(.34,1.3,.5,1),
-             left .9s cubic-bezier(.33,.9,.4,1),top .5s ease;
+  position:absolute;left:0;width:120px;z-index:10;
+  display:flex;flex-direction:column;align-items:center;
+  transform:translate(calc(var(--x,0) * var(--stage-w,1000px) / 100 - 50%),-100%)
+            scale(var(--s,1));
+  transform-origin:50% 100%;
+  transition:transform var(--m-travel) var(--m-ease-io),filter .3s,opacity .3s;
+  will-change:transform;
 }
 .char.dead{filter:grayscale(1) brightness(.6);opacity:.8}
 /* Người đang dẫn đầu: vòng sáng vàng dưới chân */
@@ -369,7 +401,7 @@ body{
 }
 .cn-bar-bg{order:3;width:76%;height:5px;margin-top:2px;background:rgba(50,14,0,.55);
   border-radius:var(--r-pill);overflow:hidden;border:1px solid rgba(255,255,255,.7)}
-.cn-bar{height:100%;width:100%;border-radius:var(--r-pill);transition:width .6s cubic-bezier(.4,1.3,.5,1),background .3s}
+.cn-bar{height:100%;width:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease),background .3s}
 .cn-bar.high{background:linear-gradient(90deg,var(--mint-deep),var(--mint))}
 .cn-bar.mid{background:linear-gradient(90deg,var(--amber),var(--gold))}
 .cn-bar.low{background:linear-gradient(90deg,var(--rose-deep),var(--rose))}
@@ -440,7 +472,7 @@ body{
 .rank-main{flex:1;min-width:0}
 .rank-name{font-size:.84rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rank-bar-bg{height:5px;background:var(--void-2);border-radius:var(--r-pill);overflow:hidden;margin-top:4px}
-.rank-bar{height:100%;border-radius:var(--r-pill);transition:width .5s}
+.rank-bar{height:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease)}
 .rank-bar.high{background:linear-gradient(90deg,var(--mint-deep),var(--mint))}
 .rank-bar.mid{background:linear-gradient(90deg,var(--amber),var(--gold))}
 .rank-bar.low{background:linear-gradient(90deg,var(--rose-deep),var(--rose))}
@@ -505,18 +537,29 @@ body{
   padding:2px 9px;border-radius:var(--r-pill);margin-right:6px;vertical-align:middle}
 
 /* ===== Bục vinh danh ===== */
-.summary-podium{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:10px 0 24px;flex-wrap:wrap}
+.summary-podium{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:10px 0 28px;flex-wrap:wrap}
 .podium-col{display:flex;flex-direction:column;align-items:center;width:28%;max-width:152px}
 .podium-figure{width:64px}
 .podium-figure.gold{width:90px}
-.podium-stand{width:100%;border-radius:var(--r-tile) var(--r-tile) 0 0;display:flex;flex-direction:column;align-items:center;padding:9px 6px;color:#1A1030}
-.podium-stand.gold{background:linear-gradient(180deg,var(--gold-pale),var(--gold));height:106px}
-.podium-stand.silver{background:linear-gradient(180deg,#E7E3FB,#B6AEDC);height:88px}
-.podium-stand.bronze{background:linear-gradient(180deg,#F0C79C,#C98A5A);height:72px}
+/* min-height chứ không phải height: bục vẫn cao thấp theo hạng, nhưng khi tên
+   đội dài hay có thêm dòng "3 thành viên" thì bục tự cao ra, chữ không tràn
+   xuống đè lên phần bên dưới. */
+.podium-stand{
+  width:100%;border-radius:var(--r-tile) var(--r-tile) 0 0;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:9px 8px 12px;color:#1A1030;
+}
+/* Bậc cao thấp tạo bằng khoảng đệm dưới chứ không bằng chiều cao cố định:
+   nội dung dài tới đâu bục cao tới đó, mà vẫn giữ dáng nhất - nhì - ba. */
+.podium-stand.gold{background:linear-gradient(180deg,var(--gold-pale),var(--gold));padding-bottom:30px}
+.podium-stand.silver{background:linear-gradient(180deg,#E7E3FB,#B6AEDC);padding-bottom:16px}
+.podium-stand.bronze{background:linear-gradient(180deg,#F0C79C,#C98A5A);padding-bottom:8px}
 .podium-rank{font-size:1.5rem;line-height:1}
-.podium-name{font-family:var(--display);font-weight:700;margin-top:4px;font-size:.92rem;text-align:center}
+.podium-name{font-family:var(--display);font-weight:700;margin-top:4px;font-size:.9rem;
+  text-align:center;line-height:1.25;max-width:100%;overflow-wrap:anywhere}
 .podium-hp{font-family:var(--display);font-size:1rem;font-weight:800;margin-top:1px;font-variant-numeric:tabular-nums}
-.team-podium-tag{font-size:.74rem;font-weight:700;margin-top:2px}
+/* Chữ trên bục là nền sáng, nên dùng mực sẫm cùng tông cho đủ tương phản */
+.team-podium-tag{font-size:.74rem;font-weight:700;margin-top:3px;color:#1A1030;opacity:.7}
 .summary-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--raise);border-radius:var(--r-tile);margin-bottom:8px}
 .summary-row.win{background:rgba(255,196,107,.12);border:1px solid var(--gold)}
 .summary-members{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
@@ -526,7 +569,7 @@ body{
    MÀN NGƯỜI CHƠI
    ========================================================================== */
 .my-hp-bar-bg{background:var(--void-2);border-radius:var(--r-pill);height:14px;overflow:hidden;margin-bottom:7px}
-.my-hp-bar{height:100%;border-radius:var(--r-pill);transition:width .6s ease}
+.my-hp-bar{height:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease)}
 .my-hp-bar.high{background:linear-gradient(90deg,var(--mint-deep),var(--mint))}
 .my-hp-bar.mid{background:linear-gradient(90deg,var(--amber),var(--gold))}
 .my-hp-bar.low{background:linear-gradient(90deg,var(--rose-deep),var(--rose))}
@@ -547,7 +590,7 @@ body{
 .opp-card.dead{opacity:.4}
 .opp-name{font-size:.85rem;font-weight:600;margin-bottom:7px;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .opp-hp-bg{background:var(--void-2);border-radius:var(--r-pill);height:7px;overflow:hidden}
-.opp-hp-bar{height:100%;border-radius:var(--r-pill);transition:width .5s}
+.opp-hp-bar{height:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease)}
 .opp-hp-bar.high{background:var(--mint)}
 .opp-hp-bar.mid{background:var(--gold)}
 .opp-hp-bar.low{background:var(--rose)}
@@ -556,7 +599,11 @@ body{
 .skill-title{font-size:.92rem;font-weight:600;color:var(--gold);margin-bottom:12px}
 .my-skills-list{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
 .skill-item{background:var(--raise);border:1px solid var(--edge);border-radius:var(--r-tile);padding:12px 14px;cursor:pointer;transition:.15s;position:relative}
-.skill-item:hover:not(.disabled){border-color:var(--gold);background:rgba(255,196,107,.07)}
+.skill-item{transition:transform var(--m-out) var(--m-ease),border-color var(--m-out),background var(--m-out)}
+@media(hover:hover){
+  .skill-item:hover:not(.disabled){border-color:var(--gold);background:rgba(255,196,107,.07);
+    transform:translateY(-2px);transition-duration:var(--m-in)}
+}
 .skill-item.selected-skill{border-color:var(--gold);background:rgba(255,196,107,.13)}
 .skill-item.disabled{opacity:.4;cursor:default}
 .sk-row{display:flex;align-items:center;gap:10px}
@@ -607,7 +654,7 @@ body{
 .mini-hp-row{display:flex;align-items:center;gap:9px}
 .mini-hp-name{font-size:.81rem;font-weight:600;min-width:92px;max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mini-hp-bg{flex:1;background:var(--void-2);border-radius:var(--r-pill);height:6px;overflow:hidden}
-.mini-hp-fill{height:100%;border-radius:var(--r-pill);transition:width .5s}
+.mini-hp-fill{height:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease)}
 .mini-hp-fill.high{background:var(--mint)}
 .mini-hp-fill.mid{background:var(--gold)}
 .mini-hp-fill.low{background:var(--rose)}
@@ -657,7 +704,7 @@ body{
 .team-name{font-family:var(--display);font-weight:700;font-size:1rem}
 .team-hp-val{font-family:var(--display);font-weight:800;font-size:1.25rem;font-variant-numeric:tabular-nums}
 .team-hp-bg{background:var(--void-2);border-radius:var(--r-pill);height:8px;overflow:hidden}
-.team-hp-bar{height:100%;border-radius:var(--r-pill);transition:width .5s}
+.team-hp-bar{height:100%;border-radius:var(--r-pill);transition:width var(--m-bar) var(--m-ease)}
 .team-members{display:flex;flex-direction:column;gap:5px;margin-top:9px}
 .team-member{display:flex;align-items:center;gap:8px}
 .tm-name{font-size:.8rem;color:var(--text-2);min-width:88px;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -675,9 +722,14 @@ body{
   .ad-title{font-size:1.8rem}.p-title{font-size:1.55rem}
   .q-options{grid-template-columns:1fr}
 }
+/* Người dùng bật "giảm chuyển động" trong hệ điều hành: mọi thứ đứng yên,
+   nhưng KHÔNG có gì bị ẩn đi — nhân vật vẫn nhảy tới đúng vị trí mới. */
 @media(prefers-reduced-motion:reduce){
-  .char-body,.scene-star,.double-banner,.delay-icon,.q-timer-fill.low{animation:none!important}
-  .char{transition:none}
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+  .char{will-change:auto}
 }
 
 /* ==========================================================================
@@ -731,10 +783,14 @@ body::before{display:none}
 }
 .animal-card{
   background:var(--raise);border:1.5px solid var(--edge);border-radius:var(--r-tile);
-  padding:7px 4px 6px;cursor:pointer;transition:.15s;font-family:var(--body);
+  padding:7px 4px 6px;cursor:pointer;font-family:var(--body);
+  transition:transform var(--m-out) var(--m-ease),border-color var(--m-out),background var(--m-out);
   display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-2);
 }
-.animal-card:hover{border-color:var(--ice);background:rgba(111,227,255,.08)}
+@media(hover:hover){
+  .animal-card:hover{border-color:var(--ice);background:rgba(111,227,255,.08);
+    transform:translateY(-2px);transition-duration:var(--m-in)}
+}
 .animal-card.selected{border-color:var(--gold);background:rgba(255,196,107,.14);color:var(--gold)}
 .animal-card:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
 .animal-art{display:block;width:56px;height:56px}

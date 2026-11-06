@@ -780,7 +780,7 @@ function renderFinished(state) {
         <div class="podium-rank">${medal[d.r - 1]}</div>
         <div class="podium-name" style="color:${d.t.color}">${d.t.emoji} ${escHtml(d.t.name)}</div>
         <div class="podium-hp">${fmt(d.t.hp)} điểm</div>
-        <div class="team-podium-tag" style="color:#938BC4">${d.t.member_count} thành viên</div>
+        <div class="team-podium-tag">${d.t.member_count} thành viên</div>
       </div>
     </div>`;
   }).join('');
@@ -913,13 +913,14 @@ function applyHeroSizes(players){
   };
 
   if (teams.length){
-    const range = BattleHero.scoreRange(teams.map(t => t.hp));
+    const baseX = BattleHero.teamBaseX(teams);
     const dauBang = teams.slice().sort((a, b) => b.hp - a.hp)[0];
+    const range = BattleHero.scoreRange(teams.map(t => t.hp));
     teams.forEach(t => {
       const m = (t.members || []).length;
       (t.members || []).forEach((mem, mi) => {
         const el = charEls[mem.player_id]; if (!el) return;
-        el.style.left = BattleHero.teamX(t.hp, range, mi, m).toFixed(2) + '%';
+        el.style.setProperty('--x', BattleHero.teamX(baseX[t.team_id], mi, m).toFixed(2));
         // cả đội dẫn đầu cùng được đánh dấu
         el.classList.toggle('leader', !!dauBang && !range.flat && t.team_id === dauBang.team_id);
       });
@@ -933,7 +934,7 @@ function applyHeroSizes(players){
   const top = players.slice().sort((a, b) => b.hp - a.hp)[0];
   players.forEach(p => {
     const el = charEls[p.player_id]; if (!el) return;
-    el.style.left = BattleHero.runX(p.hp, range).toFixed(2) + '%';
+    el.style.setProperty('--x', BattleHero.runX(p.hp, range).toFixed(2));
     el.classList.toggle('leader', !!top && !range.flat && p.player_id === top.player_id);
     sc(p); mung(p);
   });
@@ -997,6 +998,7 @@ function ensureRoster(state, players){
   // Mọi người chạy trên cùng mặt đường; xếp thành nhiều hàng cho đỡ che nhau
   drawScene();
   const stage = document.getElementById('arena-stage');
+  BattleHero.watchStage(stage);   // giữ --stage-w khớp bề ngang thật
   const scale = BattleHero.fitScale(stage, n);
   const looks = BattleAnimals.assignColors(players);
   lastCorrectByPid = {};
@@ -1014,7 +1016,7 @@ function ensureRoster(state, players){
       const look = looks[p.player_id] || { animal: p.avatar, variant: 0 };
       const el = document.createElement('div');
       el.className = 'char';
-      el.style.left = BattleHero.RUN_START + '%';
+      el.style.setProperty('--x', BattleHero.RUN_START);
       el.style.top  = top + '%';
       el.dataset.sl = scale.toFixed(3);
       el.style.setProperty('--s', scale.toFixed(3));
