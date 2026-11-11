@@ -23,32 +23,21 @@
   }
 
   /* ---- Nhịp thở tại chỗ -------------------------------------------------
-     Chân GIỮ NGUYÊN, không guồng — chuyển động chỉ gồm thân nhún lên xuống,
-     đuôi vẫy và đầu gật nhẹ, nên nhân vật luôn có sức sống mà không bị xấu
-     như khi khớp chân xoay.                                              */
+     TAY VÀ CHÂN GIỮ NGUYÊN, không guồng, không vẫy — khớp tay chân xoay
+     trông rất xấu ở cỡ nhỏ. Chuyển động chỉ còn cả người nhún lên xuống
+     thật nhẹ như đang thở, đủ để nhân vật không bị cứng đơ.             */
   function startRun(pid, el, speed) {
     if (!G || !el) return;
     stopRun(pid);
-    var body = part(el, 'body'), tail = part(el, 'tail'), head = part(el, 'head');
-    if (!body && !tail && !head) return;
+    var body = part(el, 'body');
+    if (!body) return;
 
-    var dur = 0.78 / (speed || 1);          // một nhịp nhún
+    var dur = 1.15 / (speed || 1);          // một nhịp thở
     var tl = G.timeline({ repeat: -1, defaults: { ease: 'sine.inOut' } });
+    tl.fromTo(body, { y: 0 }, { y: -2, duration: dur }, 0)
+      .to(body, { y: 0, duration: dur }, dur);
 
-    if (body) {
-      tl.fromTo(body, { y: 0 }, { y: -3, duration: dur }, 0)
-        .to(body, { y: 0, duration: dur }, dur);
-    }
-    if (tail) {
-      tl.fromTo(tail, { rotate: -6 }, { rotate: 8, duration: dur }, 0)
-        .to(tail, { rotate: -6, duration: dur }, dur);
-    }
-    if (head) {
-      tl.fromTo(head, { rotate: 2.5 }, { rotate: -2.5, duration: dur }, 0)
-        .to(head, { rotate: 2.5, duration: dur }, dur);
-    }
-
-    tl.seek(Math.random() * dur * 2);       // lệch pha để cả đàn không nhún giống hệt nhau
+    tl.seek(Math.random() * dur * 2);       // lệch pha để cả lớp không thở giống hệt nhau
     runners[pid] = tl;
   }
 
@@ -61,7 +50,7 @@
   function freeze(pid, el) {
     stopRun(pid);
     if (!G || !el) return;
-    ['tail', 'head'].forEach(function (n) {
+    ['head'].forEach(function (n) {
       var p = part(el, n);
       if (p) G.to(p, { rotate: 0, duration: 0.3, ease: 'power2.out' });
     });
@@ -76,7 +65,7 @@
     return new Promise(function (resolve) {
       if (!G || !el) return resolve();
       var fig = el.querySelector('.char-figure') || el;
-      var tail = part(el, 'tail'), head = part(el, 'head');
+      var head = part(el, 'head');   // tay không xoay, xem ghi chú ở startRun
       var tl = runners[pid];
       if (tl) tl.pause();
 
@@ -100,10 +89,6 @@
         .to(fig, { scaleY: 0.9, duration: 0.08, ease: 'power2.out' }, 0.88)
         .to(fig, { scaleY: 1, duration: 0.16, ease: 'elastic.out(1,0.45)' }, 0.96);
 
-      if (tail) {
-        jumpTl.to(tail, { rotate: -26, duration: 0.3, ease: 'power2.out' }, 0.12)
-              .to(tail, { rotate: 0, duration: 0.34, ease: 'power2.inOut' }, 0.5);
-      }
       if (head) {
         jumpTl.to(head, { rotate: -10, duration: 0.3 }, 0.12)
               .to(head, { rotate: 0, duration: 0.3 }, 0.5);
@@ -114,9 +99,8 @@
   /* Reo mừng khi về đích */
   function cheer(pid, el) {
     if (!G || !el) return;
-    var head = part(el, 'head'), tail = part(el, 'tail');
+    var head = part(el, 'head');
     if (head) G.fromTo(head, { rotate: -12 }, { rotate: 12, duration: 0.26, yoyo: true, repeat: 5, ease: 'sine.inOut' });
-    if (tail) G.fromTo(tail, { rotate: -18 }, { rotate: 18, duration: 0.2, yoyo: true, repeat: 7, ease: 'sine.inOut' });
   }
 
   /* Dọn sạch khi dựng lại danh sách người chơi */

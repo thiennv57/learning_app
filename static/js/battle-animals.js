@@ -155,15 +155,21 @@
   /* ------------------------------ Mắt -----------------------------------
      Mắt to kiểu chibi: tròng tối, một đốm sáng lớn trên trái và một đốm nhỏ
      dưới phải, mí trên dày tạo cảm giác mi mắt.                          */
-  function eyeSvg(cx, col) {
+  function eyeSvg(cx, col, out) {
     return '<g>' +
-      '<ellipse cx="' + cx + '" cy="40" rx="7" ry="8.4" fill="#FFFFFF"/>' +
-      '<ellipse cx="' + cx + '" cy="41" rx="6.2" ry="7.6" fill="' + col + '"/>' +
-      '<ellipse cx="' + cx + '" cy="43" rx="4" ry="4.6" fill="' + LASH + '"/>' +
-      '<circle cx="' + (cx - 2.2) + '" cy="37.6" r="2.6" fill="#FFFFFF"/>' +
-      '<circle cx="' + (cx + 2.4) + '" cy="45" r="1.3" fill="#FFFFFF" opacity=".8"/>' +
-      '<path d="M' + (cx - 7.2) + ' 37 q7 -6 14.4 0" stroke="' + LASH + '" stroke-width="2.6" ' +
-        'fill="none" stroke-linecap="round"/>' +
+      '<ellipse cx="' + cx + '" cy="40" rx="7.2" ry="8.6" fill="#FFFFFF"/>' +
+      '<ellipse cx="' + cx + '" cy="41" rx="6.4" ry="7.8" fill="' + col + '"/>' +
+      // nửa dưới tròng sáng hơn, cho mắt có chiều sâu như tranh mẫu
+      '<path d="M' + (cx - 6.4) + ' 42 a6.4 6.6 0 0 0 12.8 0 Z" fill="#FFFFFF" opacity=".16"/>' +
+      '<ellipse cx="' + cx + '" cy="42.6" rx="3.8" ry="4.4" fill="' + LASH + '"/>' +
+      '<circle cx="' + (cx - 2.3) + '" cy="37.4" r="2.8" fill="#FFFFFF"/>' +
+      '<circle cx="' + (cx + 2.5) + '" cy="45.2" r="1.4" fill="#FFFFFF" opacity=".85"/>' +
+      // mi trên dày, kéo dài ra phía đuôi mắt
+      '<path d="M' + (cx - 7.4) + ' 37.4 q7.4 -6.6 14.8 0 l' + (out * 2.6) + ' -2" ' +
+        'stroke="' + LASH + '" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+      // lông mày
+      '<path d="M' + (cx - 5.4) + ' 29.5 q5.4 -3 10.8 0" stroke="' + LASH + '" ' +
+        'stroke-width="2" fill="none" stroke-linecap="round" opacity=".75"/>' +
     '</g>';
   }
 
@@ -190,10 +196,18 @@
         '<rect x="51" y="90" width="13" height="7.6" rx="3.8" fill="' + SANDAL + '" ' +
           'stroke="' + LINE + '" stroke-width="2.2"/>' +
 
-        /* tay sau (bên xa người xem) — vẽ trước thân cho có chiều sâu */
-        '<path d="M33 68 l-3.5 10" stroke="' + LINE + '" stroke-width="11"/>' +
-        '<path d="M33 68 l-3.5 10" stroke="' + SKIN_SHADE + '" stroke-width="7.4"/>' +
-        '<circle cx="29" cy="79" r="4.4" fill="' + SKIN_SHADE + '" stroke="' + LINE + '" stroke-width="2"/>' +
+        /* cặp sách da nâu đeo bên hông — vẽ trước thân và trước tay */
+        '<rect x="18" y="68" width="17" height="16" rx="3.5" fill="#A8713F" ' +
+          'stroke="' + LINE + '" stroke-width="2.2"/>' +
+        '<path d="M18 73 h17 v-1.5 a3.5 3.5 0 0 0 -3.5 -3.5 h-10 a3.5 3.5 0 0 0 -3.5 3.5 Z" ' +
+          'fill="#8E5B30"/>' +
+        '<rect x="24.5" y="71.5" width="4" height="3.4" rx="1" fill="#E7C979" ' +
+          'stroke="' + LINE + '" stroke-width="1.4"/>' +
+
+        /* tay sau (bên xa người xem) — buông thẳng, vẽ trước thân cho có chiều sâu */
+        '<path d="M33 67 l-1.5 11" stroke="' + LINE + '" stroke-width="11"/>' +
+        '<path d="M33 67 l-1.5 11" stroke="' + SKIN_SHADE + '" stroke-width="7.4"/>' +
+        '<circle cx="31.5" cy="79" r="4.4" fill="' + SKIN_SHADE + '" stroke="' + LINE + '" stroke-width="2"/>' +
 
         /* thân áo trắng, có tay áo ngắn */
         '<path d="M33 60 q17 -6 34 0 l2 18 q-19 6 -38 0 Z" fill="' + SHIRT + '" ' +
@@ -205,17 +219,19 @@
         '<path d="M66 61 q7 2 7 8 q-5 3 -10 1 Z" fill="' + SHIRT + '" stroke="' + LINE + '" ' +
           'stroke-width="2.2"/>' +
 
+        /* quai cặp vắt chéo qua ngực */
+        '<path d="M62 60 L36 76" stroke="' + LINE + '" stroke-width="7"/>' +
+        '<path d="M62 60 L36 76" stroke="#8E5B30" stroke-width="4.4"/>' +
+
         /* khăn quàng đỏ */
         '<path d="M42 59 q8 6 16 0 l-1.6 5 q-6.4 3.6 -12.8 0 Z" fill="' + SCARF + '" ' +
           'stroke="' + LINE + '" stroke-width="2"/>' +
         '<path d="M50 63 l3.6 9 l-7.2 0 Z" fill="' + SCARF_DARK + '" stroke="' + LINE + '" stroke-width="2"/>' +
 
-        /* tay trước — nhóm "tail" để hiệu ứng vẫy nhẹ bám vào */
-        '<g data-part="tail" style="transform-origin:67px 68px">' +
-          '<path d="M67 68 l3.5 10" stroke="' + LINE + '" stroke-width="11"/>' +
-          '<path d="M67 68 l3.5 10" stroke="' + SKIN + '" stroke-width="7.4"/>' +
-          '<circle cx="71" cy="79" r="4.6" fill="' + SKIN + '" stroke="' + LINE + '" stroke-width="2"/>' +
-        '</g>' +
+        /* tay trước — buông thẳng, KHÔNG có hoạt ảnh vẫy */
+        '<path d="M67 67 l1.5 11" stroke="' + LINE + '" stroke-width="11"/>' +
+        '<path d="M67 67 l1.5 11" stroke="' + SKIN + '" stroke-width="7.4"/>' +
+        '<circle cx="68.5" cy="79" r="4.6" fill="' + SKIN + '" stroke="' + LINE + '" stroke-width="2"/>' +
 
         /* đầu to kiểu chibi */
         '<g data-part="head" style="transform-origin:50px 60px">' +
@@ -228,10 +244,12 @@
           hairSvg(c, pal) +
           '<ellipse cx="28" cy="48" rx="6" ry="3.6" fill="' + BLUSH + '" opacity=".6"/>' +
           '<ellipse cx="72" cy="48" rx="6" ry="3.6" fill="' + BLUSH + '" opacity=".6"/>' +
-          eyeSvg(36, c.eye) +
-          eyeSvg(64, c.eye) +
-          '<path d="M46.5 51.5 q3.5 4 7 0" stroke="' + LASH + '" stroke-width="2.4" fill="none" ' +
-            'stroke-linecap="round"/>' +
+          eyeSvg(36, c.eye, -1) +
+          eyeSvg(64, c.eye, 1) +
+          /* miệng cười hé, có lưỡi — ở cỡ nhỏ vẫn đọc ra là đang cười */
+          '<path d="M45.5 51 q4.5 7 9 0 Z" fill="#8C3F45" stroke="' + LASH + '" ' +
+            'stroke-width="1.8" stroke-linejoin="round"/>' +
+          '<path d="M47.6 54.4 q2.4 2.6 4.8 0 Z" fill="#F08A96"/>' +
           extraSvg(c, pal) +
         '</g>' +
       '</g></svg>';
