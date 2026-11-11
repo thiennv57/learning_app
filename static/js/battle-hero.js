@@ -35,7 +35,7 @@
      chụm lại một chỗ và các đội cách nhau theo điểm cao → thấp.
      Trong một đội, mỗi thành viên lệch nhau một chút cho khỏi che nhau.   */
   var MATE_GAP = 2.4;   // % chiều ngang giữa hai thành viên cùng đội
-  var MIN_X = 6;        // lề trái tối thiểu, chừa chỗ cho biển tên
+  var MIN_X = 9;        // lề trái tối thiểu, chừa chỗ cho biển tên
 
   /* Chỗ đứng của từng ĐỘI trên đường đua.
 
@@ -99,7 +99,7 @@
   function fitScale(stageEl, n) {
     var h = (stageEl && stageEl.clientHeight) || 480;
     var rowPx = (ROW_BOTTOM - ROW_TOP) / 100 * h / rowCount(n);
-    return Math.max(0.62, Math.min(1.15, rowPx / 38));
+    return Math.max(0.78, Math.min(1.3, rowPx / 30));
   }
 
   /* Báo bề ngang sân khấu cho CSS (biến --stage-w) và giữ nó khớp khi cửa sổ
@@ -116,27 +116,64 @@
     stageEl._stageRO.observe(stageEl);
   }
 
+  /* Một đám mây tròn mập, có mắt và má hồng như trong tranh thiếu nhi.
+     s là hệ số thu nhỏ để mây xa trông nhỏ hơn mây gần.                  */
+  function cloudSvg(cx, cy, s) {
+    return '<g transform="translate(' + cx + ',' + cy + ') scale(' + s + ')">' +
+      '<g fill="#FFFFFF" stroke="#D8ECF6" stroke-width="3" stroke-linejoin="round">' +
+        '<ellipse cx="-46" cy="6" rx="34" ry="22"/><ellipse cx="46" cy="6" rx="34" ry="22"/>' +
+        '<ellipse cx="-14" cy="-10" rx="40" ry="30"/><ellipse cx="22" cy="-6" rx="34" ry="26"/>' +
+        '<rect x="-74" y="2" width="148" height="26" rx="13"/>' +
+      '</g>' +
+      '<g fill="#7D93A3">' +
+        '<path d="M-20 2 a4 5 0 0 1 8 0"/><path d="M10 2 a4 5 0 0 1 8 0"/>' +
+      '</g>' +
+      '<g fill="#FFB6C1" opacity=".75">' +
+        '<ellipse cx="-30" cy="12" rx="7" ry="4"/><ellipse cx="28" cy="12" rx="7" ry="4"/>' +
+      '</g>' +
+    '</g>';
+  }
+
   /* ---- Khung cảnh: trời, cây phượng, dãy nhà vàng, cổng đỏ, mặt đường ---- */
   function sceneMarkup() {
     return '' +
 '<svg class="street" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMax slice">' +
   '<defs>' +
     '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0" stop-color="#36B6F0"/><stop offset="1" stop-color="#A9E4FB"/>' +
+      '<stop offset="0" stop-color="#3CA9EE"/><stop offset=".62" stop-color="#8FD6F7"/>' +
+      '<stop offset="1" stop-color="#CCEEFB"/>' +
     '</linearGradient>' +
     '<linearGradient id="road" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0" stop-color="#A9A9AE"/><stop offset="1" stop-color="#8E8E95"/>' +
+      '<stop offset="0" stop-color="#B4B4BA"/><stop offset="1" stop-color="#90909A"/>' +
+    '</linearGradient>' +
+    '<radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">' +
+      '<stop offset=".45" stop-color="#FFE98A" stop-opacity=".9"/>' +
+      '<stop offset="1" stop-color="#FFE98A" stop-opacity="0"/>' +
+    '</radialGradient>' +
+    '<linearGradient id="hillFar" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#8FD08C"/><stop offset="1" stop-color="#6FBE74"/>' +
+    '</linearGradient>' +
+    '<linearGradient id="hillNear" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#75C277"/><stop offset="1" stop-color="#55A95F"/>' +
     '</linearGradient>' +
   '</defs>' +
 
-  /* bầu trời và mây */
+  /* bầu trời */
   '<rect width="1000" height="330" fill="url(#sky)"/>' +
-  '<g fill="#FFFFFF" opacity=".95">' +
-    '<ellipse cx="300" cy="62" rx="52" ry="24"/><ellipse cx="340" cy="54" rx="38" ry="26"/>' +
-    '<ellipse cx="262" cy="56" rx="30" ry="18"/>' +
-    '<ellipse cx="700" cy="46" rx="46" ry="22"/><ellipse cx="742" cy="40" rx="34" ry="24"/>' +
-    '<ellipse cx="666" cy="42" rx="26" ry="16"/>' +
+
+  /* mặt trời tươi cười ở góc phải */
+  '<circle cx="762" cy="58" r="92" fill="url(#sunGlow)"/>' +
+  '<circle cx="762" cy="58" r="42" fill="#FFE071" stroke="#F0B93C" stroke-width="4"/>' +
+  '<g fill="#5A4036">' +
+    '<path d="M746 50 a5 6 0 0 1 10 0" /><path d="M768 50 a5 6 0 0 1 10 0"/>' +
   '</g>' +
+  '<path d="M752 66 q10 9 20 0" stroke="#5A4036" stroke-width="3.4" fill="none" stroke-linecap="round"/>' +
+  '<g fill="#FFAFA0" opacity=".75">' +
+    '<ellipse cx="740" cy="64" rx="7" ry="4"/><ellipse cx="784" cy="64" rx="7" ry="4"/>' +
+  '</g>' +
+
+  /* mây tròn mập có mặt cười */
+  cloudSvg(292, 62, 1) + cloudSvg(560, 42, .82) + cloudSvg(120, 108, .62) +
 
   /* dây điện vắt ngang */
   '<g stroke="#3A3F47" stroke-width="2" fill="none" opacity=".75">' +
@@ -146,9 +183,16 @@
   '<rect x="868" y="92" width="13" height="250" fill="#A4A9B0"/>' +
   '<rect x="856" y="110" width="37" height="7" rx="3" fill="#8D939B"/>' +
 
+  /* đồi xanh thoai thoải phía sau trường */
+  '<path d="M-40 268 q130 -96 270 -40 q120 48 250 -14 q140 -66 280 -6 q120 48 280 10 l0 120 l-1080 0 Z" ' +
+    'fill="url(#hillFar)"/>' +
+  '<path d="M-40 300 q160 -70 310 -18 q150 50 290 -10 q160 -62 300 0 q90 36 180 20 l0 100 l-1080 0 Z" ' +
+    'fill="url(#hillNear)"/>' +
+
   /* dãy nhà vàng của trường */
-  '<rect x="120" y="150" width="760" height="180" fill="#F3C13F"/>' +
-  '<rect x="120" y="150" width="760" height="16" fill="#E0AE2C"/>' +
+  '<rect x="120" y="150" width="760" height="180" rx="8" fill="#F6C94F" ' +
+    'stroke="#C98F28" stroke-width="4"/>' +
+  '<rect x="120" y="150" width="760" height="16" rx="8" fill="#E0AE2C"/>' +
   '<g fill="#BFE3F5" stroke="#8FC8E4" stroke-width="3">' +
     '<rect x="168" y="186" width="52" height="62" rx="3"/>' +
     '<rect x="246" y="186" width="52" height="62" rx="3"/>' +
@@ -218,8 +262,21 @@
 
   /* mặt đường — chỗ các bạn chạy đua */
   '<rect x="0" y="374" width="1000" height="186" fill="url(#road)"/>' +
-  '<g stroke="#7E7E86" stroke-width="2" opacity=".5" fill="none">' +
-    '<path d="M60 452 q40 -8 84 2"/><path d="M420 500 q50 -10 96 4"/><path d="M700 430 q44 -8 88 4"/>' +
+  '<rect x="0" y="374" width="1000" height="7" fill="#7C7C86" opacity=".45"/>' +
+  // vạch kẻ đứt giữa đường, mờ để không át nhân vật
+  '<g stroke="#FFF6D8" stroke-width="7" stroke-linecap="round" opacity=".5" ' +
+    'stroke-dasharray="54 46">' +
+    '<path d="M0 436 H1000"/>' +
+  '</g>' +
+  '<g stroke="#80808A" stroke-width="2" opacity=".35" fill="none">' +
+    '<path d="M60 476 q40 -8 84 2"/><path d="M420 516 q50 -10 96 4"/><path d="M700 462 q44 -8 88 4"/>' +
+  '</g>' +
+  // hoa phượng rụng trên đường, rải rác cho đỡ trống
+  '<g fill="#E8402F" opacity=".5">' +
+    '<ellipse cx="128" cy="414" rx="5" ry="3"/><ellipse cx="316" cy="446" rx="4" ry="2.5"/>' +
+    '<ellipse cx="208" cy="498" rx="5" ry="3"/><ellipse cx="548" cy="410" rx="4" ry="2.5"/>' +
+    '<ellipse cx="640" cy="486" rx="5" ry="3"/><ellipse cx="862" cy="430" rx="4" ry="2.5"/>' +
+    '<ellipse cx="930" cy="508" rx="5" ry="3"/><ellipse cx="406" cy="540" rx="4" ry="2.5"/>' +
   '</g>' +
 '</svg>';
   }
