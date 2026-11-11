@@ -843,6 +843,22 @@ function drawScene(){
   sc.dataset.drawn = '1';
 }
 
+// Tính lại cỡ nhân vật theo chiều cao sân khấu hiện tại. Gọi khi khung hình
+// đổi cỡ (bật toàn màn hình, xoay máy) — nếu không, nhân vật giữ nguyên cỡ
+// tính lúc dựng và trông bé so với khung.
+function rescaleChars(stage){
+  if (!stage) return;
+  const els = stage.querySelectorAll('.char');
+  if (!els.length) return;
+  const scale = BattleHero.fitScale(stage, els.length);
+  const ns = Math.max(0.85, Math.min(1.6, 1 / scale)).toFixed(3);
+  els.forEach(el => {
+    el.dataset.sl = scale.toFixed(3);
+    el.style.setProperty('--s', scale.toFixed(3));
+    el.style.setProperty('--ns', ns);
+  });
+}
+
 // Chỗ đứng theo điểm + hiệu ứng mừng khi vừa trả lời đúng.
 function applyHeroSizes(players){
   players = players || [];
@@ -913,7 +929,8 @@ function ensureRoster(state, players){
   // Mọi người chạy trên cùng mặt đường; xếp thành nhiều hàng cho đỡ che nhau
   drawScene();
   const stage = document.getElementById('arena-stage');
-  BattleHero.watchStage(stage);   // giữ --stage-w khớp bề ngang thật
+  // giữ --stage-w khớp bề ngang thật, và tính lại cỡ nhân vật khi đổi khung
+  BattleHero.watchStage(stage, function () { rescaleChars(stage); });
   const scale = BattleHero.fitScale(stage, n);
   const looks = BattleAnimals.assignColors(players);
   lastCorrectByPid = {};

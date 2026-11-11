@@ -42,7 +42,18 @@
 
     var n = players.length;
     var stage = layer.parentNode;
-    BattleHero.watchStage(stage);
+    BattleHero.watchStage(stage, function () {
+      // tính lại cỡ nhân vật khi sân khấu đổi cỡ (xem BattleHero.fitScale)
+      var els = stage.querySelectorAll('.char');
+      if (!els.length) return;
+      var sc = BattleHero.fitScale(stage, els.length);
+      var ns = Math.max(0.9, Math.min(1.6, 1 / sc)).toFixed(3);
+      Array.prototype.forEach.call(els, function (el) {
+        el.dataset.sl = sc.toFixed(3);
+        el.style.setProperty('--s', sc.toFixed(3));
+        el.style.setProperty('--ns', ns);
+      });
+    });
     var layout = BattleHero.fitScale(stage, n);
     var looks = global.BattleAnimals ? BattleAnimals.assignColors(players) : {};
 

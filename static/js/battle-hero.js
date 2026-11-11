@@ -95,7 +95,7 @@
     return ROW_TOP + (ROW_BOTTOM - ROW_TOP) * ((i % rows) / (rows - 1));
   }
 
-  /* Cỡ nhân vật: co lại cho vừa số hàng, để không ai chèn lên ai */
+  /* Cỡ nhân vật: co theo bề cao một hàng, để các hàng không chèn kín nhau. */
   function fitScale(stageEl, n) {
     var h = (stageEl && stageEl.clientHeight) || 480;
     var rowPx = (ROW_BOTTOM - ROW_TOP) / 100 * h / rowCount(n);
@@ -105,10 +105,12 @@
   /* Báo bề ngang sân khấu cho CSS (biến --stage-w) và giữ nó khớp khi cửa sổ
      đổi cỡ hoặc vào/ra toàn màn hình. Nhờ biến này mà vị trí nhân vật tính
      được bằng transform thay vì thuộc tính left.                          */
-  function watchStage(stageEl) {
+  function watchStage(stageEl, onResize) {
     if (!stageEl) return;
+    if (onResize) stageEl._stageCb = onResize;   // tính lại cỡ nhân vật, xem fitScale
     var apply = function () {
       stageEl.style.setProperty('--stage-w', (stageEl.clientWidth || 1000) + 'px');
+      if (stageEl._stageCb) stageEl._stageCb();
     };
     apply();
     if (stageEl._stageRO || !global.ResizeObserver) return;
@@ -118,19 +120,42 @@
 
   /* Một đám mây tròn mập, có mắt và má hồng như trong tranh thiếu nhi.
      s là hệ số thu nhỏ để mây xa trông nhỏ hơn mây gần.                  */
-  function cloudSvg(cx, cy, s) {
+  /* Mây tích: đáy gần phẳng, đỉnh vồng thành nhiều cụm to nhỏ khác nhau.
+     Ba lớp — bóng xám dưới bụng, thân trắng, mảng nắng trên đỉnh — cho mây
+     có khối thay vì là một mảng trắng dẹt. v chọn một trong hai dáng để ba
+     đám mây trên trời không giống hệt nhau.                               */
+  function cloudSvg(cx, cy, s, v) {
+    var lumps = v
+      ? '<ellipse cx="-52" cy="4" rx="28" ry="19"/><ellipse cx="-20" cy="-14" rx="36" ry="28"/>' +
+        '<ellipse cx="16" cy="-4" rx="30" ry="23"/><ellipse cx="46" cy="8" rx="24" ry="16"/>'
+      : '<ellipse cx="-46" cy="6" rx="24" ry="16"/><ellipse cx="-16" cy="-6" rx="32" ry="24"/>' +
+        '<ellipse cx="18" cy="-18" rx="34" ry="27"/><ellipse cx="52" cy="2" rx="28" ry="20"/>';
+    var base = v ? '<rect x="-78" y="2" width="152" height="22" rx="11"/>'
+                 : '<rect x="-68" y="0" width="150" height="22" rx="11"/>';
     return '<g transform="translate(' + cx + ',' + cy + ') scale(' + s + ')">' +
-      '<g fill="#FFFFFF" stroke="#D8ECF6" stroke-width="3" stroke-linejoin="round">' +
-        '<ellipse cx="-46" cy="6" rx="34" ry="22"/><ellipse cx="46" cy="6" rx="34" ry="22"/>' +
-        '<ellipse cx="-14" cy="-10" rx="40" ry="30"/><ellipse cx="22" cy="-6" rx="34" ry="26"/>' +
-        '<rect x="-74" y="2" width="148" height="26" rx="13"/>' +
-      '</g>' +
-      '<g fill="#7D93A3">' +
-        '<path d="M-20 2 a4 5 0 0 1 8 0"/><path d="M10 2 a4 5 0 0 1 8 0"/>' +
-      '</g>' +
-      '<g fill="#FFB6C1" opacity=".75">' +
-        '<ellipse cx="-30" cy="12" rx="7" ry="4"/><ellipse cx="28" cy="12" rx="7" ry="4"/>' +
-      '</g>' +
+      // bụng mây: hơi xám, lệch xuống dưới
+      '<g fill="#BFD6E6" transform="translate(0,7)">' + lumps + base + '</g>' +
+      '<g fill="#FFFFFF">' + lumps + base + '</g>' +
+      // mảng nắng trên đỉnh
+      '<g fill="#FFFFFF" opacity=".9" transform="translate(-4,-7) scale(.82)">' + lumps + '</g>' +
+    '</g>';
+  }
+
+  /* Tán cây dựng bằng nhiều cụm lá chồng nhau, nên viền ngoài lồi lõm tự
+     nhiên chứ không phải vài hình bầu dục trơn.                          */
+  function leaves(list, fill) {
+    return '<g fill="' + fill + '">' + list.map(function (c) {
+      return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + c[2] + '"/>';
+    }).join('') + '</g>';
+  }
+
+  /* Chùm hoa phượng: vài chấm nhỏ sát nhau, cỡ bằng một cụm lá nên nhìn như
+     hoa nở lẫn trong tán chứ không phải chấm tròn dán lên.               */
+  function blossom(x, y, r) {
+    return '<g transform="translate(' + x + ',' + y + ')" fill="#DF5137">' +
+      '<circle cx="0" cy="0" r="' + r + '"/>' +
+      '<circle cx="' + (r * 1.25) + '" cy="' + (r * 0.45) + '" r="' + (r * 0.72) + '"/>' +
+      '<circle cx="' + (-r * 0.6) + '" cy="' + (-r * 0.95) + '" r="' + (r * 0.6) + '"/>' +
     '</g>';
   }
 
@@ -163,17 +188,11 @@
 
   /* mặt trời tươi cười ở góc phải */
   '<circle cx="762" cy="58" r="92" fill="url(#sunGlow)"/>' +
-  '<circle cx="762" cy="58" r="42" fill="#FFE071" stroke="#F0B93C" stroke-width="4"/>' +
-  '<g fill="#5A4036">' +
-    '<path d="M746 50 a5 6 0 0 1 10 0" /><path d="M768 50 a5 6 0 0 1 10 0"/>' +
-  '</g>' +
-  '<path d="M752 66 q10 9 20 0" stroke="#5A4036" stroke-width="3.4" fill="none" stroke-linecap="round"/>' +
-  '<g fill="#FFAFA0" opacity=".75">' +
-    '<ellipse cx="740" cy="64" rx="7" ry="4"/><ellipse cx="784" cy="64" rx="7" ry="4"/>' +
-  '</g>' +
+  '<circle cx="762" cy="58" r="44" fill="#FFDF72"/>' +
+  '<circle cx="756" cy="52" r="34" fill="#FFF0AC" opacity=".85"/>' +
 
   /* mây tròn mập có mặt cười */
-  cloudSvg(292, 62, 1) + cloudSvg(560, 42, .82) + cloudSvg(120, 108, .62) +
+  cloudSvg(292, 62, 1, 0) + cloudSvg(560, 42, .82, 1) + cloudSvg(120, 108, .6, 1) +
 
   /* dây điện vắt ngang */
   '<g stroke="#3A3F47" stroke-width="2" fill="none" opacity=".75">' +
@@ -236,18 +255,39 @@
     '<rect x="796" y="262" width="7" height="44"/><rect x="826" y="262" width="7" height="44"/>' +
   '</g>' +
 
-  /* cây phượng bên trái, hoa đỏ rụng đầy vỉa hè */
-  '<rect x="86" y="186" width="20" height="120" fill="#8B5A3C"/>' +
-  '<g fill="#4FA64B">' +
-    '<ellipse cx="78" cy="118" rx="96" ry="60"/><ellipse cx="186" cy="100" rx="78" ry="52"/>' +
-    '<ellipse cx="252" cy="134" rx="58" ry="38"/><ellipse cx="18" cy="168" rx="70" ry="44"/>' +
+  /* cây phượng bên trái: gốc to, thân chia cành, tán lá nhiều lớp */
+  // thân cây: gốc loe ra bám đất, thuôn dần lên chỗ chia cành
+  '<path d="M76 316 q2 -8 7 -12 q2 -38 4 -58 q1 -14 6 -26 l16 4 q-6 12 -7 24 ' +
+    'q-2 22 0 56 q6 4 8 12 Z" fill="#7C5538"/>' +
+  // cành chính toả ra, nhỏ dần về đầu cành
+  '<g stroke="#7C5538" fill="none" stroke-linecap="round">' +
+    '<path d="M100 214 q-28 -10 -48 -32" stroke-width="12"/>' +
+    '<path d="M104 206 q26 -16 52 -24" stroke-width="11"/>' +
+    '<path d="M104 198 q8 -26 4 -48" stroke-width="10"/>' +
+    '<path d="M58 186 q-14 -12 -26 -16" stroke-width="6.5"/>' +
+    '<path d="M150 184 q18 -10 34 -10" stroke-width="6.5"/>' +
+    '<path d="M106 156 q-12 -18 -26 -26" stroke-width="5.5"/>' +
   '</g>' +
-  '<g fill="#E8402F">' +
-    '<circle cx="36" cy="86" r="9"/><circle cx="86" cy="64" r="8"/><circle cx="134" cy="88" r="9"/>' +
-    '<circle cx="182" cy="62" r="8"/><circle cx="226" cy="100" r="9"/><circle cx="62" cy="130" r="8"/>' +
-    '<circle cx="116" cy="142" r="7"/><circle cx="166" cy="128" r="9"/><circle cx="214" cy="146" r="7"/>' +
-    '<circle cx="12" cy="116" r="8"/><circle cx="256" cy="120" r="7"/><circle cx="148" cy="46" r="7"/>' +
+  // vân thân
+  '<g stroke="#5E3F28" stroke-width="2.4" fill="none" opacity=".5" stroke-linecap="round">' +
+    '<path d="M82 300 q6 -42 10 -72"/><path d="M98 300 q2 -40 5 -66"/>' +
   '</g>' +
+  /* Tán lá ba lớp. Lớp nền vẽ đủ dày để các vòng tròn dính lại thành một
+     khối, hai lớp sau nhỏ hơn và nằm hẳn bên trong nên mép tròn chỉ thấy ở
+     trong tán, đọc ra là cụm lá chứ không phải mấy quả bóng rời.         */
+  leaves([[26,152,60],[78,128,62],[134,114,62],[188,128,56],[236,152,46],
+          [-8,180,48],[48,186,50],[104,174,54],[160,176,50],[214,188,40],
+          [112,148,66]], '#357539') +
+  leaves([[34,140,44],[84,116,46],[136,104,46],[186,118,40],[228,142,32],
+          [52,172,34],[106,160,40],[158,162,34],[6,168,30]], '#43893F') +
+  leaves([[36,122,26],[88,98,28],[136,88,28],[182,102,22],[62,152,18],
+          [114,140,22],[220,126,16]], '#549B47') +
+  // hoa phượng nở rải trên tán, dồn về phía ngọn
+  blossom(34, 104, 5) + blossom(74, 84, 5) + blossom(126, 74, 5) +
+  blossom(172, 86, 4.5) + blossom(214, 112, 4.5) + blossom(10, 140, 4.5) +
+  blossom(58, 132, 4) + blossom(106, 118, 4.5) + blossom(154, 126, 4) +
+  blossom(196, 146, 4) + blossom(242, 142, 4) + blossom(84, 158, 4) +
+  blossom(140, 160, 4) + blossom(30, 176, 4) +
 
   /* vỉa hè */
   '<rect x="0" y="330" width="1000" height="44" fill="#E9E6DE"/>' +
